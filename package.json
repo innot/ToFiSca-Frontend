@@ -1,0 +1,55 @@
+{
+  "name": "react_test",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest",
+    "coverage": "vitest run --coverage",
+    "update_api": "openapi-typescript http://localhost/openapi.json -o ./src/tofisca_api.d.ts"
+  },
+  "dependencies": {
+    "@chakra-ui/icons": "^2.2.4",
+    "@chakra-ui/react": "^3.12.0",
+    "@emotion/react": "^11.14.0",
+    "@uidotdev/usehooks": "^2.4.1",
+    "lodash": "^4.17.21",
+    "next-themes": "^0.4.6",
+    "openapi-fetch": "^0.13.5",
+    "openapi-react-query": "^0.3.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.5.0",
+    "react-merge-refs": "^2.1.1",
+    "react-resize-detector": "^12.0.2",
+    "use-device-pixel-ratio": "^1.1.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "@types/lodash": "^4.17.16",
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^3.0.8",
+    "eslint": "^9.21.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "msw": "^2.7.3",
+    "openapi-typescript": "^7.6.1",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.24.1",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.8"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}

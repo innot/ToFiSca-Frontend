@@ -1,7 +1,7 @@
 import ProjectImageSetupPage, {ImageOverlay} from "./image_setup_page.tsx";
 import {Alert, Box, Button, Heading, HStack, Icon, List, Text, VStack} from "@chakra-ui/react";
 import * as React from "react";
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {PerforationLocation, Point, Size} from "./types.ts";
 import {useDevicePixelRatio} from "use-device-pixel-ratio";
 import {$api, ApiError} from "../api.ts";
@@ -191,11 +191,11 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
      * This prevents any up- or downscaling of the canvas content due to layout changes.
      * @note: On high DPI devices the canvas size is adjusted for the displayPixelRatio.
      */
-    const handleImageResize = useCallback((newSize: Size) => {
+    const handleImageResize = (newSize: Size) => {
         const {width, height} = newSize;
         if (!width || !height) return;
         setCanvasSize({width: width * dpr, height: height * dpr});
-    }, [dpr])
+    }
 
     /**
      * update the Canvas
@@ -206,7 +206,7 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
     }, [pointerPosition, currentPerfLocation]);
 
     return (
-        <ProjectImageSetupPage onImageResize={handleImageResize}>
+        <ProjectImageSetupPage onImageResize={() => handleImageResize}>
             <ApiErrorDialog apiError={apiError}/>
             <ImageOverlay>
                 <div style={{position: 'absolute', top: 0, bottom: 0, left: 0, right: 0}}>
@@ -286,7 +286,6 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
                 </Button>
             </VStack>
         </ProjectImageSetupPage>
-
     )
 }
 

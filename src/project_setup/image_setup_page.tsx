@@ -76,7 +76,7 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
 
     /**
      * Callback function that updates the imageSize state whenever the size of the
-     * image elemenet changes.
+     * image element changes.
      */
     const onResize = useCallback(() => {
         if (!imageRef.current) return;

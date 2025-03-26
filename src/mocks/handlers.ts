@@ -18,11 +18,15 @@ const mockScanArea: ScanArea = {
 }
 
 interface ProjectState {
+    allProjects: { [key: string]: number }
+    name?: string
     perfLocation?: PerforationLocation,
     scanArea?: ScanArea,
 }
 
 const projectState: ProjectState = {
+    allProjects: {"foo": 1, "bar": 2, "baz": 3},
+    name: "",
     perfLocation: undefined,
     scanArea: undefined,
 }
@@ -30,11 +34,25 @@ const projectState: ProjectState = {
 
 export const handlers = [
 
-    http.get("/api/project/setupstate", async () => {
-            // todo: implement
-            return HttpResponse.json("")
+    http.get("/api/allprojects", async () => {
+        return HttpResponse.json(projectState.allProjects);
+    }),
+
+    http.get("/api/project/name", async () => {
+        return HttpResponse.json(projectState.name);
+    }),
+
+    http.put("/api/project/name", async ({request}) => {
+        const newname = await request.json() as string;
+        if (newname in projectState.allProjects) {
+            return HttpResponse.json({msg: `Project with name ${newname} already exists`}, {
+                status: 409,
+                statusText: "Duplicate Name Error"
+            })
         }
-    ),
+        projectState.name = newname;
+        return HttpResponse.json(newname);
+    }),
 
     http.get("/api/project/perf/location", async () => {
         const loc = projectState.perfLocation;

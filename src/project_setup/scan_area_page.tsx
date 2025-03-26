@@ -1,5 +1,5 @@
 import * as React from "react";
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {useDevicePixelRatio} from "use-device-pixel-ratio";
 import {useQueryClient} from "@tanstack/react-query";
 import {
@@ -391,7 +391,7 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
      */
     useEffect(() => {
         if (!currentScanArea) return;
-        if (activeEdge != Edge.NONE) return;
+        if (activeEdge == Edge.NONE) return;
 
         apiPutScanArea.mutate({body: currentScanArea})
 
@@ -462,11 +462,11 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
      * This prevents any up- or downscaling of the canvas content due to layout changes.
      * @note: On high DPI devices the canvas size is adjusted for the displayPixelRatio.
      */
-    const handleImageResize = useCallback((newSize: Size) => {
+    const handleImageResize = (newSize: Size) => {
         const {width, height} = newSize;
         if (!width || !height) return;
         setCanvasSize({width: width * dpr, height: height * dpr});
-    }, [dpr])
+    }
 
     const getScanAreaAspectRatioString = (): string => {
         if (!currentScanArea)
@@ -487,7 +487,7 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
     }
 
     return (
-        <ProjectImageSetupPage onImageContentChange={handleImageContentChange} onImageResize={handleImageResize}>
+        <ProjectImageSetupPage onImageContentChange={()=>handleImageContentChange} onImageResize={()=>handleImageResize}>
             <ApiErrorDialog apiError={apiError}/>
             <ImageOverlay>
                 <div ref={divRef}

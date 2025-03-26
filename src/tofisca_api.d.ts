@@ -229,13 +229,13 @@ export interface components {
             /**
              * Creation Date
              * Format: date-time
-             * @default 2025-03-26T23:22:10.845231
+             * @default 2025-03-26T23:58:22.518667
              */
             creation_date: string;
             /**
              * Film Date
              * Format: date-time
-             * @default 2025-03-26T23:22:10.845261
+             * @default 2025-03-26T23:58:22.518694
              */
             film_date: string;
             /**
@@ -372,7 +372,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        [key: string]: string;
+                        [key: string]: number;
                     };
                 };
             };

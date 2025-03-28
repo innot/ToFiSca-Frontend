@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/project/id": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Project Id */
+        get: operations["get_project_id_api_project_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/project/name": {
         parameters: {
             query?: never;
@@ -85,6 +102,23 @@ export interface paths {
         get: operations["get_project_metadata_api_project_metadata_get"];
         /** Put Project Metadata */
         put: operations["put_project_metadata_api_project_metadata_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/project/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Project State */
+        get: operations["get_project_state_api_project_state_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -168,6 +202,11 @@ export interface components {
              */
             msg: string;
         };
+        /**
+         * FilmFormat
+         * @enum {string}
+         */
+        FilmFormat: "super8" | "normal8" | "normal16" | "unspecified";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -224,45 +263,51 @@ export interface components {
              */
             y: number;
         };
-        /** ProjectMetaData */
-        ProjectMetaData: {
+        /** ProjectFilmData */
+        ProjectFilmData: {
             /**
-             * Creation Date
-             * Format: date-time
-             * @default 2025-03-26T23:58:22.518667
+             * Date
+             * @default June 1977
              */
-            creation_date: string;
+            date: string;
             /**
-             * Film Date
-             * Format: date-time
-             * @default 2025-03-26T23:58:22.518694
-             */
-            film_date: string;
-            /**
-             * Film Title
+             * Author
              * @default
              */
-            film_title: string;
+            author: string;
             /**
-             * Film Description
+             * Description
              * @default
              */
-            film_description: string;
+            description: string;
             /**
-             * Film Author
+             * Format
+             * @default super8
+             */
+            format: components["schemas"]["FilmFormat"] | string;
+            /**
+             * Stock
              * @default
              */
-            film_author: string;
+            stock: string;
             /**
-             * File Fps
+             * Fps
              * @default 18
              */
-            file_fps: number;
+            fps: number;
             /**
-             * Film Tags
+             * Tags
              * @default []
              */
-            film_tags: string[];
+            tags: string[];
+        };
+        /** ProjectId */
+        ProjectId: {
+            /**
+             * Id
+             * @default
+             */
+            id: number;
         };
         /** ProjectName */
         ProjectName: {
@@ -318,6 +363,31 @@ export interface components {
              */
             nameSet: boolean;
         };
+        /** ProjectState */
+        ProjectState: {
+            /**
+             * Current Frame
+             * @default 0
+             */
+            current_frame: number;
+            /**
+             * Last Scanned Frame
+             * @default 0
+             */
+            last_scanned_frame: number;
+            /**
+             * Last Processed Frame
+             * @default 0
+             */
+            last_processed_frame: number;
+            /** @default not_started */
+            state: components["schemas"]["ProjectStateType"];
+        };
+        /**
+         * ProjectStateType
+         * @enum {string}
+         */
+        ProjectStateType: "not_started" | "running" | "paused" | "finished" | "error";
         /** ScanArea */
         ScanArea: {
             /** @description delta from reference point to top left */
@@ -398,6 +468,26 @@ export interface operations {
             };
         };
     };
+    get_project_id_api_project_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectId"];
+                };
+            };
+        };
+    };
     get_project_name_api_project_name_get: {
         parameters: {
             query?: never;
@@ -438,6 +528,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectName"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Conflict */
@@ -537,7 +636,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectMetaData"];
+                    "application/json": components["schemas"]["ProjectFilmData"];
                 };
             };
         };
@@ -551,7 +650,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProjectMetaData"];
+                "application/json": components["schemas"]["ProjectFilmData"];
             };
         };
         responses: {
@@ -561,7 +660,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectMetaData"];
+                    "application/json": components["schemas"]["ProjectFilmData"];
                 };
             };
             /** @description Not Found */
@@ -580,6 +679,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_project_state_api_project_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectState"];
                 };
             };
         };

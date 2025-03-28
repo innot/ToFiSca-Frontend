@@ -1,7 +1,7 @@
 import {http, HttpResponse} from 'msw'
 
 import mockImage from "./mock_frame_image.png"
-import {ScanArea, PerforationLocation, Point} from "../project_setup/types.ts";
+import {PerforationLocation, Point, ScanArea} from "../project_setup/types.ts";
 
 
 const mockPerforationLocation: PerforationLocation = {
@@ -20,6 +20,7 @@ const mockScanArea: ScanArea = {
 interface ProjectState {
     allProjects: { [key: string]: number }
     name?: string
+    id: number
     perfLocation?: PerforationLocation,
     scanArea?: ScanArea,
 }
@@ -27,6 +28,7 @@ interface ProjectState {
 const projectState: ProjectState = {
     allProjects: {"foo": 1, "bar": 2, "baz": 3},
     name: "",
+    id: 4,
     perfLocation: undefined,
     scanArea: undefined,
 }
@@ -39,20 +41,32 @@ export const handlers = [
     }),
 
     http.get("/api/project/name", async () => {
-        return HttpResponse.json(projectState.name);
+        return HttpResponse.json({name: projectState.name});
     }),
 
     http.put("/api/project/name", async ({request}) => {
-        const newname = await request.json() as string;
-        if (newname in projectState.allProjects) {
-            return HttpResponse.json({msg: `Project with name ${newname} already exists`}, {
+        const url = new URL(request.url)
+        const name = url.searchParams.get('name')
+        if (!name) {
+            return HttpResponse.json({msg: `Name parameter is empty`}, {
+                status: 400,
+                statusText: "Invalid Name"
+            })
+        }
+        if (name in projectState.allProjects) {
+            return HttpResponse.json({msg: `Project with name "${name}" already exists`}, {
                 status: 409,
                 statusText: "Duplicate Name Error"
             })
         }
-        projectState.name = newname;
-        return HttpResponse.json(newname);
+        projectState.name = name;
+        return HttpResponse.json({name: name});
     }),
+
+    http.get("/api/project/id", async () => {
+        return HttpResponse.json({id: projectState.id});
+    }),
+
 
     http.get("/api/project/perf/location", async () => {
         const loc = projectState.perfLocation;
@@ -89,12 +103,14 @@ export const handlers = [
         if (startPoint.x == 0 && startPoint.y == 0) {
             // mock full autodetect
             projectState.perfLocation = mockPerforationLocation
+            projectState.scanArea = mockScanArea
             return HttpResponse.json(mockPerforationLocation)
         }
 
         if (startPoint.x > 0.1 && startPoint.x < mockPerforationLocation.inner_edge &&
             startPoint.y > mockPerforationLocation.top_edge && startPoint.y < mockPerforationLocation.bottom_edge) {
             projectState.perfLocation = mockPerforationLocation
+            projectState.scanArea = mockScanArea
             return HttpResponse.json(mockPerforationLocation)
         }
         const msg = `Could not detect perforation hole ${startPoint ? " at the given point" : ""}.`
@@ -106,8 +122,13 @@ export const handlers = [
     }),
 
     http.get('/api/project/scanarea', () => {
-        const sa = mockScanArea
-        return HttpResponse.json(sa)
+        if (!projectState.scanArea) {
+            return HttpResponse.json({msg: "No Perf"},{
+                status:404,
+                statusText: "No Perforation Location set"
+            })
+        }
+        return HttpResponse.json(projectState.scanArea)
     }),
 
     http.put('/api/project/scanarea', async ({request}) => {

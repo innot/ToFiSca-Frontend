@@ -82,8 +82,8 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
     /** The initial PerforationLocation. Used to revert to the original state if required **/
     const [initialScanArea, setInitialScanArea] = useState<ScanArea>();
 
-    /** The last error message from the backend API. Valid until the next API call **/
-    const [apiError, setApiError] = useState<ApiError>();
+    /** The last error message from the backend API. Valid until cleared in the error dialog **/
+    const [apiError, setApiError] = useState<ApiError | null>(null);
 
     /** The values for the manual input fields **/
     const [topValue, setTopValue] = useState<number>(0);
@@ -383,6 +383,20 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
     const apiPutScanArea = $api.useMutation(
         "put",
         "/api/project/scanarea",
+        {
+            onError: (error) => {
+                setApiError(error as ApiError)
+                if (onFinished) {
+                    onFinished(pageIndex, false)
+                }
+            },
+            onSuccess: () => {
+                // Tell the parent PrejectSetup Component that this page is finished
+                if (onFinished) {
+                    onFinished(pageIndex, true)
+                }
+            }
+        }
     );
 
     /**
@@ -397,28 +411,6 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentScanArea, activeEdge]);
-
-    /**
-     * Handle POST ScanArea response.
-     * If succesfull update the page status to finished.
-     * If error show Error Message.
-     */
-    useEffect(() => {
-        if (apiPutScanArea.isSuccess) {
-            // todo: clear any latched error messages and set state to finished
-            setApiError(undefined)
-            if (onFinished) {
-                onFinished(pageIndex, true)
-            }
-        }
-        if (apiPutScanArea.isError) {
-            const error = apiPutScanArea.error as ApiError;
-            console.error(`Internal Error: /api/scanarea invalid return. ${apiError}`)
-            setApiError(error)
-        }
-
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [apiPutScanArea.error, apiPutScanArea.isError, apiPutScanArea.isSuccess]);
 
 
     /////////////////////////////////////////////////////////////////////////
@@ -463,6 +455,7 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
      * @note: On high DPI devices the canvas size is adjusted for the displayPixelRatio.
      */
     const handleImageResize = (newSize: Size) => {
+        console.log(`handleImageResize (${JSON.stringify(newSize)})`)
         const {width, height} = newSize;
         if (!width || !height) return;
         setCanvasSize({width: width * dpr, height: height * dpr});
@@ -487,8 +480,9 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
     }
 
     return (
-        <ProjectImageSetupPage onImageContentChange={()=>handleImageContentChange} onImageResize={()=>handleImageResize}>
-            <ApiErrorDialog apiError={apiError}/>
+        <ProjectImageSetupPage onImageContentChange={(image) => handleImageContentChange(image)}
+                               onImageResize={(size) => handleImageResize(size)}>
+            <ApiErrorDialog apiError={apiError} setApiError={() => setApiError(null)}/>
             <ImageOverlay>
                 <div ref={divRef}
                      style={{
@@ -513,69 +507,69 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
                     />
                 </div>
             </ImageOverlay>
-
-            {
-                !perfLocation ?
-                    <Alert.Root status="error" flexDirection="column">
-                        <HStack>
-                            <Alert.Indicator/>
-                            Perforation hole location is not set
-                        </HStack>
-                        <Alert.Description>
-                            Go to the Perforation setup page to set the perforation
-                        </Alert.Description>
-                    </Alert.Root>
-                    :
-                    <VStack alignItems="center" height={"100%"}>
-                        <Heading>Manual Adjust</Heading>
-                        <Container bg={"gray.700"} centerContent={true} borderRadius="2xl" padding={"2%"}>
-                            <Grid templateColumns="repeat(2, 1fr)" gap="1">
-                                <GridItem colSpan={2} style={{margin: 'auto'}}>
-                                    <SingleEdgeTextInput edge={Edge.TOP} value={topValue} min={0}
-                                                         max={imageNaturalSize.height - 1}
-                                                         onValueChange={handleValueChange}/>
-                                </GridItem>
-                                <GridItem style={{margin: 'auto'}}>
-                                    <SingleEdgeTextInput edge={Edge.LEFT} value={leftValue} min={0}
-                                                         max={imageNaturalSize.width - 1}
-                                                         onValueChange={handleValueChange}/>
-                                </GridItem>
-                                <GridItem style={{margin: 'auto'}}>
-                                    <SingleEdgeTextInput edge={Edge.RIGHT} value={rightValue} min={1}
-                                                         max={imageNaturalSize.width}
-                                                         onValueChange={handleValueChange}/>
-                                </GridItem>
-                                <GridItem colSpan={2} style={{margin: 'auto'}}>
-                                    <SingleEdgeTextInput edge={Edge.BOTTOM} value={bottomValue} min={1}
-                                                         max={imageNaturalSize.height}
-                                                         onValueChange={handleValueChange}/>
-                                </GridItem>
-                            </Grid>
+            <Container>
+                {
+                    !perfLocation ?
+                        <Alert.Root status="error" flexDirection="column">
+                            <HStack>
+                                <Alert.Indicator/>
+                                Perforation hole location is not set
+                            </HStack>
+                            <Alert.Description>
+                                Go to the Perforation setup page to set the perforation
+                            </Alert.Description>
+                        </Alert.Root>
+                        :
+                        <VStack alignItems="center" height={"100%"}>
+                            <Heading>Manual Adjust</Heading>
+                            <Container bg={"gray.700"} centerContent={true} borderRadius="2xl" padding={"2%"}>
+                                <Grid templateColumns="repeat(2, 1fr)" gap="1">
+                                    <GridItem colSpan={2} style={{margin: 'auto'}}>
+                                        <SingleEdgeTextInput edge={Edge.TOP} value={topValue} min={0}
+                                                             max={imageNaturalSize.height - 1}
+                                                             onValueChange={handleValueChange}/>
+                                    </GridItem>
+                                    <GridItem style={{margin: 'auto'}}>
+                                        <SingleEdgeTextInput edge={Edge.LEFT} value={leftValue} min={0}
+                                                             max={imageNaturalSize.width - 1}
+                                                             onValueChange={handleValueChange}/>
+                                    </GridItem>
+                                    <GridItem style={{margin: 'auto'}}>
+                                        <SingleEdgeTextInput edge={Edge.RIGHT} value={rightValue} min={1}
+                                                             max={imageNaturalSize.width}
+                                                             onValueChange={handleValueChange}/>
+                                    </GridItem>
+                                    <GridItem colSpan={2} style={{margin: 'auto'}}>
+                                        <SingleEdgeTextInput edge={Edge.BOTTOM} value={bottomValue} min={1}
+                                                             max={imageNaturalSize.height}
+                                                             onValueChange={handleValueChange}/>
+                                    </GridItem>
+                                </Grid>
+                                <Box flexGrow="1"><p/></Box>
+                            </Container>
+                            <Separator/>
+                            <Heading>Scan Area Size</Heading>
+                            <Container bg={"gray.700"} centerContent={true} borderRadius="2xl" padding={"2%"}>
+                                <DataList.Root>
+                                    <DataList.Item>
+                                        <DataList.ItemLabel>Pixels</DataList.ItemLabel>
+                                        <DataList.ItemValue>{getScanAreaSizeString()}</DataList.ItemValue>
+                                        <DataList.ItemLabel>Aspect Ratio</DataList.ItemLabel>
+                                        <DataList.ItemValue>{getScanAreaAspectRatioString()}</DataList.ItemValue>
+                                    </DataList.Item>
+                                </DataList.Root>
+                            </Container>
+                            <Separator/>
                             <Box flexGrow="1"><p/></Box>
-                        </Container>
-                        <Separator/>
-                        <Heading>Scan Area Size</Heading>
-                        <Container bg={"gray.700"} centerContent={true} borderRadius="2xl" padding={"2%"}>
-                            <DataList.Root>
-                                <DataList.Item>
-                                    <DataList.ItemLabel>Pixels</DataList.ItemLabel>
-                                    <DataList.ItemValue>{getScanAreaSizeString()}</DataList.ItemValue>
-                                    <DataList.ItemLabel>Aspect Ratio</DataList.ItemLabel>
-                                    <DataList.ItemValue>{getScanAreaAspectRatioString()}</DataList.ItemValue>
-                                </DataList.Item>
-                            </DataList.Root>
-                        </Container>
-                        <Separator/>
-                        <Box flexGrow="1"><p/></Box>
-                        <Button
-                            onClick={handleRevert}
-                            disabled={initialScanArea === undefined}>
-                            Revert to last stored ScanArea
-                        </Button>
-                    </VStack>
-            }
+                            <Button
+                                onClick={handleRevert}
+                                disabled={initialScanArea === undefined}>
+                                Revert to last stored ScanArea
+                            </Button>
+                        </VStack>
+                }
+            </Container>
         </ProjectImageSetupPage>
-
     )
 }
 
@@ -592,7 +586,7 @@ function clamp(value: number, lower: number, upper: number): number {
  * @param scanArea The scanArea object with normalized values.
  * @param perfLoc The reference point the scanArea is based on
  * @param canvas The canvas element
- * @param activeEdge The currently active edge if a frag is in progress or Edge.NONE if no drag is active
+ * @param activeEdge The currently active edge if a frag is in progress or "Edge.NONE" if no drag is active
  * @param handleSize The size of the edge drag area in canvas pixels
  */
 function drawCanvas(scanArea: ScanArea,

@@ -4,6 +4,7 @@ import {
     AspectRatio,
     Box,
     Button,
+    Card,
     DataList,
     Heading,
     HStack,
@@ -11,8 +12,7 @@ import {
     Separator,
     Spinner,
     Switch,
-    Text,
-    VStack
+    Text
 } from "@chakra-ui/react";
 
 import {ApiFetchPreviewImage} from "./api.ts";
@@ -121,70 +121,72 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
     return (
         <ImageRefsContext value={{imgDivRef, imageRef} as unknown as null}>
             <HStack padding={"0.5%"} align="top" id="hstack">
-                <VStack marginTop="3%" align="top" height="100%">
-                    <Button onClick={handleNewPreviewImage}>
-                        <LuCamera/>Snap
-                    </Button>
-                    <Switch.Root>
-                        <Switch.HiddenInput/>
-                        <Switch.Label>Live</Switch.Label>
-                        <Switch.Control/>
-                    </Switch.Root>
-                    <Separator/>
-                    <DataList.Root>
-                        <Heading size={"sm"}>Image Size</Heading>
-                        <DataList.Item>
-                            <DataList.ItemLabel>Camera</DataList.ItemLabel>
-                            <DataList.ItemValue>{imageSize.width}x{imageSize.height}</DataList.ItemValue>
-                            <DataList.ItemLabel>Screen</DataList.ItemLabel>
-                            <DataList.ItemValue>{getImageScreenSize().width}x{getImageScreenSize().height}</DataList.ItemValue>
-                            <DataList.ItemLabel>Zoom Factor</DataList.ItemLabel>
-                            <DataList.ItemValue>{getZoomFactor().toFixed(3)}</DataList.ItemValue>
-                        </DataList.Item>
-                    </DataList.Root>
-                    <Separator/>
-                </VStack>
-                <Box width="-webkit-fit-content"
-                     height="auto"
-                     bg="bg" borderRadius="2xl"
-                     padding="2%"
-                     flexGrow="1">
-                    <AspectRatio width={"100%"}
-                                 height={"100%"}
-                                 ratio={imageSize.width / imageSize.height}>
-                        <div ref={resizeDetectorRef}>
-                            <div
-                                ref={imgDivRef}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    bottom: 0,
-                                    right: 0,
-                                }}>
-                                <Image ref={imageRef}
-                                       src={previewImageUrl}
-                                       alt={"mock"}
-                                       objectFit="contain"
-                                       htmlHeight={"100%"}
-                                />
+                <Card.Root flex={1} variant="elevated" bg={"gray.500"}>
+                    <Card.Body>
+                        <Button onClick={handleNewPreviewImage}>
+                            <LuCamera/>Snap
+                        </Button>
+                        <Switch.Root>
+                            <Switch.HiddenInput/>
+                            <Switch.Label>Live</Switch.Label>
+                            <Switch.Control/>
+                        </Switch.Root>
+                        <Separator/>
+                        <DataList.Root>
+                            <Heading size={"sm"}>Image Size</Heading>
+                            <DataList.Item>
+                                <DataList.ItemLabel>Camera</DataList.ItemLabel>
+                                <DataList.ItemValue>{imageSize.width}x{imageSize.height}</DataList.ItemValue>
+                                <DataList.ItemLabel>Screen</DataList.ItemLabel>
+                                <DataList.ItemValue>{getImageScreenSize().width}x{getImageScreenSize().height}</DataList.ItemValue>
+                                <DataList.ItemLabel>Zoom Factor</DataList.ItemLabel>
+                                <DataList.ItemValue>{getZoomFactor().toFixed(3)}</DataList.ItemValue>
+                            </DataList.Item>
+                        </DataList.Root>
+                        <Separator/>
+                    </Card.Body>
+                </Card.Root>
+                <Card.Root flex={3} variant="elevated" bg={"black"}>
+                    <Card.Body>
+                        <AspectRatio width={"100%"}
+                                     height={"100%"}
+                                     ratio={imageSize.width / imageSize.height}>
+                            <div ref={resizeDetectorRef}>
+                                <div
+                                    ref={imgDivRef}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        bottom: 0,
+                                        right: 0,
+                                    }}>
+                                    <Image ref={imageRef}
+                                           src={previewImageUrl}
+                                           alt={"mock"}
+                                           objectFit="contain"
+                                           htmlHeight={"100%"}
+                                    />
+                                </div>
+                                {imageLoading ?
+                                    <div style={{
+                                        justifyContent: "center"
+                                    }}>
+                                        <Spinner size="xl"
+                                                 borderWidth="5px"
+                                                 color="red.500"/>
+                                    </div> : <div/>
+                                }
                             </div>
-                            {imageLoading ?
-                                <div style={{
-                                    justifyContent: "center"
-                                }}>
-                                    <Spinner size="xl"
-                                             borderWidth="5px"
-                                             color="red.500"/>
-                                </div> : <div/>
-                            }
-                        </div>
-                    </AspectRatio>
-                </Box>
-                <Box marginTop="1%" width="20%" flex="0.6 1">
-                    {props.children}
-                </Box>
-                <Box></Box>
+                        </AspectRatio>
+                    </Card.Body>
+                </Card.Root>
+                <Card.Root flex={2} variant="elevated" bg={"gray.500"}>
+                    <Card.Body>
+                        {props.children}
+                    </Card.Body>
+                </Card.Root>
+                <Box/>
             </HStack>
         </ImageRefsContext>
     )

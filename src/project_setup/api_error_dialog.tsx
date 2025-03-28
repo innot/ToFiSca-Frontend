@@ -4,16 +4,27 @@ import {Button, CloseButton, Dialog, Heading, Table} from "@chakra-ui/react";
 import {Portal} from "@chakra-ui/react";
 
 interface Props {
-    apiError: ApiError | undefined;
+    apiError: ApiError | null;
+    setApiError: (error: ApiError | null) => void;
 }
 
 export const ApiErrorDialog = (props: Props) => {
 
     const [open, setOpen] = useState(false)
 
+    /**
+     * Show Error Dialog once a new apiError has been set
+     */
     useEffect(() => {
-        if(props.apiError) setOpen(true);
+        if (props.apiError) setOpen(true);
     }, [props.apiError])
+
+    /**
+     * Clear the error message once the dialog has shown
+     */
+    useEffect(() => {
+        if (!open) props.setApiError(null)
+    }, [open, props]);
 
     return (
         <Dialog.Root lazyMount open={open} onOpenChange={(e) => setOpen(e.open)}>

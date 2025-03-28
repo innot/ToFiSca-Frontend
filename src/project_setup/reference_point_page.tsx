@@ -1,7 +1,7 @@
 import ProjectImageSetupPage, {ImageOverlay} from "./image_setup_page.tsx";
 import {Alert, Box, Button, Heading, HStack, Icon, List, Text, VStack} from "@chakra-ui/react";
 import * as React from "react";
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {PerforationLocation, Point, Size} from "./types.ts";
 import {useDevicePixelRatio} from "use-device-pixel-ratio";
 import {$api, ApiError} from "../api.ts";
@@ -31,7 +31,7 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
     const [canvasSize, setCanvasSize] = useState({width: 0, height: 0})
 
     /** The current position of the mouse pointer relative to the canvas (normalized) **/
-    const [pointerPosition, setPointerPosition] = useState<Point>()
+    const [pointerPosition, setPointerPosition] = useState<Point | null>(null)
 
     /** Flag to indicate that a detect request has been sent to the backend. **/
     const [isDetecting, setIsDetecting] = useState(false);
@@ -40,15 +40,15 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
     const [startPoint, setStartPoint] = useState<Point | undefined>()
 
     /** The current PerforationLocation. Will be updated by an Autodetect or a manual detect **/
-    const [currentPerfLocation, setCurrentPerfLocation] = useState<PerforationLocation>();
+    const [currentPerfLocation, setCurrentPerfLocation] = useState<PerforationLocation | null>(null);
 
     /** The initial PerforationLocation. Used to revert to the original state if required **/
-    const [initialPerfLocation, setInitialPerfLocation] = useState<PerforationLocation>();
+    const [initialPerfLocation, setInitialPerfLocation] = useState<PerforationLocation | null>(null);
 
     const [detectorState, setDetectorState] = useState<Messages>(Messages.NOT_STARTED);
 
     /** The last error message from the backend API. Valid until the next API call **/
-    const [apiError, setApiError] = useState<ApiError | undefined>();
+    const [apiError, setApiError] = useState<ApiError | null>(null);
 
     /** The number of canvas pixels per "screen" pixel.**/
     const dpr = useDevicePixelRatio({defaultDpr: 1, round: false, maxDpr: 10});
@@ -60,7 +60,7 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
 
     /** Invalidate the PointerPosition so no crosshair is drawn anymore **/
     const handlePointerLeave = () => {
-        setPointerPosition(undefined)
+        setPointerPosition(null)
     }
 
     /** Set PointerPosition state to the current pointer position **/
@@ -113,9 +113,40 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
     /////////////////////////////////////////////////////////////////////////
 
     /** Send a perforation detection request to the backend **/
-    const apiPostDetect = $api.useMutation(
+    const {mutate: apiPostDetectMutate} = $api.useMutation(
         "post",
         "/api/project/perf/detect",
+        {
+            onError: (error) => {
+                setIsDetecting(false);
+                const apiError = error as ApiError
+                if (apiError.status !== 420 || !apiError.requestBody) {
+                    console.error(`Internal Error: /api/perf/detect invalid return. ${apiError}`)
+                    setApiError(apiError)
+                    return
+                }
+                // Error is 404: Perforation not found
+                if (!apiError.requestBody) {
+                    setApiError(apiError)
+                    return
+                }
+
+                // check the response body to see if we came from an autodetect or manual detect.
+                const point = apiError.requestBody as Point
+                if (point.x == 0 && point.y == 0) {
+                    setDetectorState(Messages.AUTODETECT_FAILED)
+                } else {
+                    setDetectorState(Messages.MANUALDETECT_FAILED)
+                }
+                setCurrentPerfLocation(null)
+            },
+            onSuccess: (data) => {
+                setIsDetecting(false);
+                setCurrentPerfLocation(data);
+                setDetectorState(Messages.SUCCESS)
+                onFinished(pageIndex, true)
+            }
+        }
     );
 
     /**
@@ -129,58 +160,14 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
 
         setIsDetecting(true);
 
-        apiPostDetect.mutate({body: startPoint})
+        apiPostDetectMutate({body: startPoint})
 
-    }, [startPoint]);
+    }, [apiPostDetectMutate, startPoint]);
 
-    /**
-     * Handle the detection request response.
-     * If succesfull set the current PerforationLocation to the one returned by the backend.
-     * If unsuccesfull set the ApiError state to the returned error.
-     **/
-    useEffect(() => {
-        setIsDetecting(false);
-        if (apiPostDetect.isSuccess) {
-            setCurrentPerfLocation(apiPostDetect.data);
-            setDetectorState(Messages.SUCCESS)
-        }
-        if (apiPostDetect.isError) {
-            const error = apiPostDetect.error as ApiError;
-            if (error.status !== 420 || !error.requestBody) {
-                console.error(`Internal Error: /api/perf/detect invalid return. ${apiError}`)
-                setApiError(error)
-                return
-            }
-            // Error is 404: Perforation not found
-            if (!error.requestBody) {
-                setApiError(error)
-                return
-            }
-
-            // check the response body to see if we came from an autodetect or manual detect.
-            const point = error.requestBody as Point
-            if (point.x == 0 && point.y == 0) {
-                setDetectorState(Messages.AUTODETECT_FAILED)
-            } else {
-                setDetectorState(Messages.MANUALDETECT_FAILED)
-            }
-            setCurrentPerfLocation(undefined)
-        }
-    }, [apiPostDetect.data, apiPostDetect.error, apiPostDetect.isError, apiPostDetect.isSuccess]);
 
     /////////////////////////////////////////////////////////////////////////
     // Effects
     /////////////////////////////////////////////////////////////////////////
-
-    /**
-     * notify the parent ProjectSetup page that this page has valid data so that the user
-     * can advance to the next setup step.
-     */
-    useEffect(() => {
-        if (onFinished) {
-            onFinished(pageIndex, currentPerfLocation !== undefined);
-        }
-    }, [currentPerfLocation]);
 
     /////////////////////////////////////////////////////////////////////////
     // Handle element resize
@@ -206,8 +193,8 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
     }, [pointerPosition, currentPerfLocation]);
 
     return (
-        <ProjectImageSetupPage onImageResize={() => handleImageResize}>
-            <ApiErrorDialog apiError={apiError}/>
+        <ProjectImageSetupPage onImageResize={(size) => handleImageResize(size)}>
+            <ApiErrorDialog apiError={apiError} setApiError={(error) => setApiError(error)}/>
             <ImageOverlay>
                 <div style={{position: 'absolute', top: 0, bottom: 0, left: 0, right: 0}}>
 
@@ -219,9 +206,9 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
                             }}
                             width={canvasSize.width}
                             height={canvasSize.height}
-                            onPointerDown={handlePointerDown}
-                            onPointerMove={handlePointerMove}
-                            onPointerLeave={handlePointerLeave}
+                            onPointerDown={(e) => handlePointerDown(e)}
+                            onPointerMove={(e) => handlePointerMove(e)}
+                            onPointerLeave={() => handlePointerLeave()}
                     />
                 </div>
             </ImageOverlay>
@@ -241,7 +228,7 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
                 <Button
                     loading={isDetecting}
                     loadingText="Detecting..."
-                    onClick={handleAutodetect}>
+                    onClick={() => handleAutodetect()}>
                     Autodetect Perforation
                 </Button>
                 {{
@@ -280,7 +267,7 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
                 }[detectorState]}
                 <Box flexGrow="1"><p/></Box>
                 <Button
-                    onClick={handleRevert}
+                    onClick={() => handleRevert()}
                     disabled={initialPerfLocation === undefined}>
                     Revert to last stored Position
                 </Button>
@@ -297,8 +284,8 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
  * @param perforation The normalized location of the perforation hole
  */
 function drawCanvas(canvas: HTMLCanvasElement,
-                    pointerPos?: Point,
-                    perforation?: PerforationLocation) {
+                    pointerPos: Point | null,
+                    perforation: PerforationLocation | null) {
 
     const ctx = canvas.getContext('2d')
     if (ctx == null) return;

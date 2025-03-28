@@ -1,5 +1,5 @@
 import * as React from "react";
-import {useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {useDevicePixelRatio} from "use-device-pixel-ratio";
 import {useQueryClient} from "@tanstack/react-query";
 import {
@@ -29,7 +29,6 @@ import {
     scaledRect2ScanArea,
     scanAreaToRect,
     scanAreaToScaledRect,
-    useIsVisible,
 } from "./common.ts";
 
 const themeColors = {
@@ -51,7 +50,7 @@ enum Edge {
     RIGHT
 }
 
-export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
+export default function ScanAreaPage({currentPage, pageIndex, onFinished}: SetupPageProps) {
 
     // activate the api calls
     useQueryClient();
@@ -96,7 +95,6 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
      * Used to query for the current perforation location only when the page is actually visible
      */
     const divRef = useRef<HTMLDivElement>(null);
-    const isVisible = useIsVisible(divRef)
 
     /** The number of canvas pixels per "screen" pixel.**/
     const dpr = useDevicePixelRatio({defaultDpr: 1, round: false, maxDpr: 10});
@@ -322,6 +320,10 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
     // API Calls
     /////////////////////////////////////////////////////////////////////////
 
+    /////////////////////////////////////////////////////////////////////////
+    // Get Perforation Location
+    /////////////////////////////////////////////////////////////////////////
+
     /**
      * Get the PerforationLocation from the backend.
      * This must exist to continue with the ScanArea
@@ -329,17 +331,17 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
     const apiGetPerfLoc = $api.useQuery(
         "get",
         "/api/project/perf/location",
-        {enabled: false}
+        // {refetchOnWindowFocus: false}
     );
 
     /**
      * Refetch the PerforationLocation once the page becomes visible
      */
     useEffect(() => {
-        if (isVisible) {
+        if (currentPage == pageIndex) {
             void apiGetPerfLoc.refetch()
         }
-    }, [apiGetPerfLoc, isVisible])
+    }, [apiGetPerfLoc, apiGetPerfLoc.refetch, currentPage, pageIndex])
 
     /**
      * Handle the get PerforationLocation response.
@@ -350,18 +352,21 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
             setPerfLocation(apiGetPerfLoc.data)
         }
         if (apiGetPerfLoc.isError) {
-            // only show the error message if the page is actually visible
+            // todo: only show the error message if the page is actually visible
             const error = apiGetPerfLoc.error as unknown as ApiError;
             if (error.status != 404) setApiError(error)
         }
     }, [apiGetPerfLoc.data, apiGetPerfLoc.error, apiGetPerfLoc.isError, apiGetPerfLoc.isSuccess]);
 
     /////////////////////////////////////////////////////////////////////////
+    // Get/Put project Scan Area
+    /////////////////////////////////////////////////////////////////////////
 
     /** Get the initial ScanArea from the backend on the first render. **/
     const apiGetScanArea = $api.useQuery(
         "get",
         "/api/project/scanarea",
+        // {refetchOnWindowFocus: false}
     );
 
     /**
@@ -379,8 +384,8 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
 
     /////////////////////////////////////////////////////////////////////////
 
-    /** Send a perforation detection request to the backend **/
-    const apiPutScanArea = $api.useMutation(
+    /** Send the current ScanArea to the Backend **/
+    const {mutate: apiPutScanAreaMutate} = $api.useMutation(
         "put",
         "/api/project/scanarea",
         {
@@ -405,17 +410,28 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
      */
     useEffect(() => {
         if (!currentScanArea) return;
-        if (activeEdge == Edge.NONE) return;
 
-        apiPutScanArea.mutate({body: currentScanArea})
+        const queryTimer = setTimeout(() => {
+            apiPutScanAreaMutate({body: currentScanArea})
+        }, 100);
 
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentScanArea, activeEdge]);
+        return () => {
+            clearTimeout(queryTimer);
+        }
+    }, [apiPutScanAreaMutate, currentScanArea]);
 
 
     /////////////////////////////////////////////////////////////////////////
     // Effects
     /////////////////////////////////////////////////////////////////////////
+
+    // refetch the perfLoc and ScanArea whenever this page becomes active
+    useEffect(() => {
+        if (currentPage == pageIndex) {
+            apiGetPerfLoc.refetch().catch(console.error)
+            apiGetScanArea.refetch().catch(console.error)
+        }
+    }, [apiGetPerfLoc, apiGetScanArea, currentPage, pageIndex]);
 
     /** update the manual entry fields on every change of the scanarea */
     useEffect(() => {
@@ -431,19 +447,6 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
 
     }, [currentScanArea, perfLocation, imageNaturalSize])
 
-    /**
-     * Redraw Canvas whenever there is a change to the ScanArea or the active edge.
-     */
-    useEffect(() => {
-
-        if (!canvasRef.current) return;
-        if (!currentScanArea) return;
-        if (!perfLocation) return;
-
-        drawCanvas(currentScanArea, perfLocation, canvasRef.current, activeEdge, handleSize);
-
-    }, [currentScanArea, perfLocation, activeEdge, handleSize, canvasRef]);
-
     /////////////////////////////////////////////////////////////////////////
     // Handle element resize
     /////////////////////////////////////////////////////////////////////////
@@ -455,11 +458,130 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
      * @note: On high DPI devices the canvas size is adjusted for the displayPixelRatio.
      */
     const handleImageResize = (newSize: Size) => {
-        console.log(`handleImageResize (${JSON.stringify(newSize)})`)
+        console.log(`ScanArea handleImageResize (${JSON.stringify(newSize)})`)
         const {width, height} = newSize;
         if (!width || !height) return;
         setCanvasSize({width: width * dpr, height: height * dpr});
+
+        // this is a bit of a hack, but handleImageResize is called whenever the page becomes visible.
+        // So this might be a good place to refetch the latest PerforationLocation
+        apiGetPerfLoc.refetch().catch(console.error);
+        apiGetScanArea.refetch().catch(console.error);
     }
+
+    /////////////////////////////////////////////////////////////////////////
+    // Draw Canvas
+    /////////////////////////////////////////////////////////////////////////
+
+    const drawCanvas = useCallback((scanarea: ScanArea, activeedge: Edge) => {
+
+        const canvas = canvasRef.current
+
+        // in the early renders the canvas is not yet set up. No need to draw on a 0x0 Canvas.
+        if (!perfLocation) return;
+        if (!canvas) return;
+        if (canvas.width == 0 || canvas.height == 0) return
+
+        const ctx = canvas.getContext('2d')
+        if (ctx == null) return;
+
+        const setColor = (drawingedge: Edge) => {
+            // a little util to set the colors depending on the state of the Edge being drawn
+            ctx.lineWidth = 5;
+
+            if (activeedge == Edge.NONE || drawingedge != activeedge) {
+                ctx.strokeStyle = themeColors.edgeColor;
+                ctx.fillStyle = themeColors.inacativeFillColor;
+            } else {
+                ctx.strokeStyle = themeColors.activeEdgeColor;
+                ctx.fillStyle = themeColors.activeFillColor;
+            }
+        }
+
+        // convert scanArea to scaled rectangle
+        const {top, bottom, left, right} = scanAreaToScaledRect(scanarea, perfLocation, canvas)
+
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw the Reference Point
+        const rx = perfLocation.reference.x * width;
+        const ry = perfLocation.reference.y * height;
+        const radius = width * 0.03
+        const sin_r = radius * Math.sin(Math.PI / 4); // 45°
+        const cos_r = radius * Math.cos(Math.PI / 4);
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(255,207,0,0.75)';
+
+        ctx.beginPath()
+        ctx.arc(rx, ry, radius, 0, Math.PI * 2, true);
+        ctx.stroke()
+
+        ctx.beginPath()
+        ctx.moveTo(rx - sin_r, ry - cos_r);
+        ctx.lineTo(rx + sin_r, ry + cos_r);
+        ctx.stroke()
+
+        ctx.beginPath()
+        ctx.moveTo(rx - sin_r, ry + cos_r);
+        ctx.lineTo(rx + sin_r, ry - cos_r);
+        ctx.stroke()
+
+        // draw line from reference point to top left corner
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.lineTo(left, top);
+        ctx.stroke()
+
+        // draw edges
+        setColor(Edge.TOP);
+        ctx.fillRect(left, top - handleSize, right - left, handleSize);
+        ctx.beginPath();
+        ctx.moveTo(0, top);
+        ctx.lineTo(width, top);
+        ctx.stroke();
+
+        setColor(Edge.BOTTOM);
+        ctx.fillRect(left, bottom, right - left, handleSize);
+        ctx.beginPath();
+        ctx.moveTo(0, bottom);
+        ctx.lineTo(width, bottom);
+        ctx.stroke();
+
+        setColor(Edge.LEFT);
+        ctx.fillRect(left - handleSize, top, handleSize, bottom - top);
+        ctx.beginPath();
+        ctx.moveTo(left, 0);
+        ctx.lineTo(left, height);
+        ctx.stroke();
+
+        setColor(Edge.RIGHT);
+        ctx.fillRect(right, top, handleSize, bottom - top);
+        ctx.beginPath();
+        ctx.moveTo(right, 0);
+        ctx.lineTo(right, height);
+        ctx.stroke();
+
+    }, [handleSize, perfLocation])
+
+    /**
+     * Redraw Canvas whenever there is a change to the ScanArea or the active edge.
+     */
+    useEffect(() => {
+        if (!currentScanArea) return;
+
+        drawCanvas(currentScanArea, activeEdge);
+
+    }, [currentScanArea, drawCanvas, activeEdge]);
+
+
+    /////////////////////////////////////////////////////////////////////////
+    // Utils for Formating
+    /////////////////////////////////////////////////////////////////////////
 
     const getScanAreaAspectRatioString = (): string => {
         if (!currentScanArea)
@@ -507,7 +629,7 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
                     />
                 </div>
             </ImageOverlay>
-            <Container>
+            <Box>
                 {
                     !perfLocation ?
                         <Alert.Root status="error" flexDirection="column">
@@ -548,10 +670,10 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
                                 <Box flexGrow="1"><p/></Box>
                             </Container>
                             <Separator/>
-                            <Heading>Scan Area Size</Heading>
-                            <Container bg={"gray.700"} centerContent={true} borderRadius="2xl" padding={"2%"}>
+                            <Container bg={"gray.700"} centerContent={true} borderRadius="2xl" padding={"1%"}>
                                 <DataList.Root>
-                                    <DataList.Item>
+                                    <Heading size={"sm"}>Scan Area Size</Heading>
+                                    <DataList.Item alignItems={"center"}>
                                         <DataList.ItemLabel>Pixels</DataList.ItemLabel>
                                         <DataList.ItemValue>{getScanAreaSizeString()}</DataList.ItemValue>
                                         <DataList.ItemLabel>Aspect Ratio</DataList.ItemLabel>
@@ -561,14 +683,14 @@ export default function ScanAreaPage({pageIndex, onFinished}: SetupPageProps) {
                             </Container>
                             <Separator/>
                             <Box flexGrow="1"><p/></Box>
-                            <Button
-                                onClick={handleRevert}
-                                disabled={initialScanArea === undefined}>
+                            <Button width={"100%"}
+                                    onClick={handleRevert}
+                                    disabled={initialScanArea === undefined}>
                                 Revert to last stored ScanArea
                             </Button>
                         </VStack>
                 }
-            </Container>
+            </Box>
         </ProjectImageSetupPage>
     )
 }
@@ -589,100 +711,6 @@ function clamp(value: number, lower: number, upper: number): number {
  * @param activeEdge The currently active edge if a frag is in progress or "Edge.NONE" if no drag is active
  * @param handleSize The size of the edge drag area in canvas pixels
  */
-function drawCanvas(scanArea: ScanArea,
-                    perfLoc: PerforationLocation,
-                    canvas: HTMLCanvasElement,
-                    activeEdge: Edge,
-                    handleSize: number) {
-
-    // in the early renders the canvas is not yet set up. No need to draw on a 0x0 Canvas.
-    if (canvas.width == 0 || canvas.height == 0) return
-
-    const ctx = canvas.getContext('2d')
-    if (ctx == null) return;
-
-    const setColor = (currentEdge: Edge) => {
-        // a little util to set the colors depending on the state of the Edge being drawn
-        ctx.lineWidth = 5;
-
-        if (currentEdge == Edge.NONE || currentEdge != activeEdge) {
-            ctx.strokeStyle = themeColors.edgeColor;
-            ctx.fillStyle = themeColors.inacativeFillColor;
-        } else {
-            ctx.strokeStyle = themeColors.activeEdgeColor;
-            ctx.fillStyle = themeColors.activeFillColor;
-        }
-    }
-
-    // convert scanArea to scaled rectangle
-    const {top, bottom, left, right} = scanAreaToScaledRect(scanArea, perfLoc, canvas)
-
-    const width = canvas.width;
-    const height = canvas.height;
-
-    ctx.clearRect(0, 0, width, height);
-
-    // Draw the Reference Point
-    const rx = perfLoc.reference.x * width;
-    const ry = perfLoc.reference.y * height;
-    const radius = width * 0.03
-    const sin_r = radius * Math.sin(Math.PI / 4); // 45°
-    const cos_r = radius * Math.cos(Math.PI / 4);
-
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(255,207,0,0.75)';
-
-    ctx.beginPath()
-    ctx.arc(rx, ry, radius, 0, Math.PI * 2, true);
-    ctx.stroke()
-
-    ctx.beginPath()
-    ctx.moveTo(rx - sin_r, ry - cos_r);
-    ctx.lineTo(rx + sin_r, ry + cos_r);
-    ctx.stroke()
-
-    ctx.beginPath()
-    ctx.moveTo(rx - sin_r, ry + cos_r);
-    ctx.lineTo(rx + sin_r, ry - cos_r);
-    ctx.stroke()
-
-    // draw line from reference point to top left corner
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(rx, ry);
-    ctx.lineTo(left, top);
-    ctx.stroke()
-
-    // draw edges
-    setColor(Edge.TOP);
-    ctx.fillRect(left, top - handleSize, right - left, handleSize);
-    ctx.beginPath();
-    ctx.moveTo(0, top);
-    ctx.lineTo(width, top);
-    ctx.stroke();
-
-    setColor(Edge.BOTTOM);
-    ctx.fillRect(left, bottom, right - left, handleSize);
-    ctx.beginPath();
-    ctx.moveTo(0, bottom);
-    ctx.lineTo(width, bottom);
-    ctx.stroke();
-
-    setColor(Edge.LEFT);
-    ctx.fillRect(left - handleSize, top, handleSize, bottom - top);
-    ctx.beginPath();
-    ctx.moveTo(left, 0);
-    ctx.lineTo(left, height);
-    ctx.stroke();
-
-    setColor(Edge.RIGHT);
-    ctx.fillRect(right, top, handleSize, bottom - top);
-    ctx.beginPath();
-    ctx.moveTo(right, 0);
-    ctx.lineTo(right, height);
-    ctx.stroke();
-
-}
 
 
 type singleProps = {

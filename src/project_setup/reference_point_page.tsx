@@ -1,7 +1,7 @@
 import ProjectImageSetupPage, {ImageOverlay} from "./image_setup_page.tsx";
 import {Alert, Box, Button, Heading, HStack, Icon, List, Text, VStack} from "@chakra-ui/react";
 import * as React from "react";
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {PerforationLocation, Point, Size} from "./types.ts";
 import {useDevicePixelRatio} from "use-device-pixel-ratio";
 import {$api, ApiError} from "../api.ts";
@@ -95,6 +95,7 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
     const apiGetPerfLoc = $api.useQuery(
         "get",
         "/api/project/perf/location",
+        {refetchOnWindowFocus: false}
     );
 
     /**

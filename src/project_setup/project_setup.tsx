@@ -9,6 +9,7 @@ import {$api, ApiError} from "../api.ts";
 import {ApiErrorDialog} from "./api_error_dialog.tsx";
 
 export interface SetupPageProps {
+    currentPage: number;
     pageIndex: number;
     onFinished: (stepNumber: number, state: boolean) => void;
 }
@@ -28,6 +29,8 @@ export default function ProjectSetup() {
 
 
     const [pageState, setPageState] = useState<boolean[]>([])
+
+    const [currentStep, setCurrentStep] = useState<number>(0)
 
 
     /////////////////////////////////////////////////////////////////////////
@@ -90,6 +93,11 @@ export default function ProjectSetup() {
         setPageState(newState)
     }
 
+    useEffect(() => {
+
+    }, [])
+
+
     const items = [
         {
             title: "General",
@@ -99,6 +107,7 @@ export default function ProjectSetup() {
                                           onProjectNameChange={(name: string) => {
                                               setProjectName(name)
                                           }}
+                                          currentPage={currentStep}
                                           pageIndex={0}
                                           onFinished={(idx, state) => handlePageFinished(idx, state)}/>,
         },
@@ -120,12 +129,16 @@ export default function ProjectSetup() {
         {
             title: "Perforation",
             description: "Locate Perforation Hole",
-            element: <ReferencePointPage pageIndex={4} onFinished={(idx, state) => handlePageFinished(idx, state)}/>,
+            element: <ReferencePointPage currentPage={currentStep}
+                                         pageIndex={4}
+                                         onFinished={(idx, state) => handlePageFinished(idx, state)}/>,
         },
         {
             title: "Scan Area",
             description: "Adjust the Area to Scan",
-            element: <ScanAreaPage pageIndex={5} onFinished={(idx, state) => handlePageFinished(idx, state)}/>,
+            element: <ScanAreaPage currentPage={currentStep}
+                                   pageIndex={5}
+                                   onFinished={(idx, state) => handlePageFinished(idx, state)}/>,
         },
     ]
 
@@ -135,74 +148,65 @@ export default function ProjectSetup() {
         linear: false,
     })
 
-    /**
-     const [setupState, setSetupState] = useState(null)
-
-     useEffect(() => {
-     const getState = async () => {
-     const state = await getProjectSetupState();
-
-     }
-
-     });
-     **/
 
     useEffect(() => {
         setPageState(new Array<boolean>(items.length).fill(false))
     }, [items.length]); // called only once on initial render
 
-
     return (
         <VStack id="test">
             <ApiErrorDialog apiError={apiError} setApiError={() => setApiError(null)}/>
             <Heading>
-                {projectName ? <span style={{"color": "aqua"}}>projectName</span>
+                {projectName ? <span style={{"color": "aqua"}}>{projectName}</span>
                     : <span style={{"color": "orange"}}>Unnamed</span>}
                 &nbsp; Project Setup
             </Heading>
-            <Steps.RootProvider value={steps} gap="0.5rem">
-                <Steps.List>
+            <Steps.Root onStepChange={(e) => setCurrentStep(e.step)}>
+                <Steps.RootProvider value={steps} gap="0.5rem">
+                    <Steps.List>
+                        {items.map((step, index) => (
+                            <Steps.Item key={index} index={index} title={step.title}>
+                                <Steps.Trigger>
+                                    <Steps.Indicator/>
+                                    <Steps.Title>{step.title}</Steps.Title>
+                                    <Steps.Separator/>
+                                </Steps.Trigger>
+                            </Steps.Item>
+                        ))}
+                    </Steps.List>
+                    <ButtonGroup size="sm" variant="solid">
+                        <Steps.PrevTrigger asChild>
+                            <Button>Prev</Button>
+                        </Steps.PrevTrigger>
+                        {items.map((step, index) => (
+                            <Steps.Content key={index} index={index} width="100%">
+                                <VStack bg={"gray.800"} paddingTop="0.3em" paddingBottom="0.3em">
+                                    <Heading>{step.description}</Heading>
+                                </VStack>
+                            </Steps.Content>
+                        ))}
+                        <Steps.NextTrigger asChild>
+                            <Button disabled={!pageState[steps.value]}>Next</Button>
+                        </Steps.NextTrigger>
+                    </ButtonGroup>
+
                     {items.map((step, index) => (
-                        <Steps.Item key={index} index={index} title={step.title}>
-                            <Steps.Trigger>
-                                <Steps.Indicator/>
-                                <Steps.Title>{step.title}</Steps.Title>
-                                <Steps.Separator/>
-                            </Steps.Trigger>
-                        </Steps.Item>
-                    ))}
-                </Steps.List>
-                <ButtonGroup size="sm" variant="solid">
-                    <Steps.PrevTrigger asChild>
-                        <Button>Prev</Button>
-                    </Steps.PrevTrigger>
-                    {items.map((step, index) => (
-                        <Steps.Content key={index} index={index} width="100%">
-                            <VStack bg={"gray.800"} paddingTop="0.3em" paddingBottom="0.3em">
-                                <Heading>{step.description}</Heading>
-                            </VStack>
+                        <Steps.Content key={index} index={index}>
+                            <Box width="100%" height="100%" bg={"gray.600"}>
+                                {step.element}
+                            </Box>
                         </Steps.Content>
                     ))}
-                    <Steps.NextTrigger asChild>
-                        <Button disabled={!pageState[steps.value]}>Next</Button>
-                    </Steps.NextTrigger>
-                </ButtonGroup>
+                    <Steps.CompletedContent>
+                        <VStack bg={"gray.800"}>
+                            <Heading>Project Set up complete</Heading>
+                        </VStack>
+                    </Steps.CompletedContent>
 
-                {items.map((step, index) => (
-                    <Steps.Content key={index} index={index}>
-                        <Box width="100%" height="100%" bg={"gray.600"}>
-                            {step.element}
-                        </Box>
-                    </Steps.Content>
-                ))}
-                <Steps.CompletedContent>
-                    <VStack bg={"gray.800"}>
-                        <Heading>Project Set up complete</Heading>
-                    </VStack>
-                </Steps.CompletedContent>
-
-            </Steps.RootProvider>
-            { /* filler */}
+                </Steps.RootProvider>
+            </Steps.Root>
+            { /* filler */
+            }
             <Box flex={1}></Box>
         </VStack>
     )

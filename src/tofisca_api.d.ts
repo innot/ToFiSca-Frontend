@@ -91,17 +91,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/project/metadata": {
+    "/api/project/filmdata": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Project Metadata */
-        get: operations["get_project_metadata_api_project_metadata_get"];
-        /** Put Project Metadata */
-        put: operations["put_project_metadata_api_project_metadata_put"];
+        /** Get Project Filmdata */
+        get: operations["get_project_filmdata_api_project_filmdata_get"];
+        /** Put Project Filmdata */
+        put: operations["put_project_filmdata_api_project_filmdata_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -202,6 +202,44 @@ export interface components {
              */
             msg: string;
         };
+        /** FilmData */
+        FilmData: {
+            /**
+             * Date
+             * @default June 1977
+             */
+            date: string;
+            /**
+             * Author
+             * @default
+             */
+            author: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Format
+             * @default super8
+             */
+            format: components["schemas"]["FilmFormat"] | string;
+            /**
+             * Stock
+             * @default
+             */
+            stock: string;
+            /**
+             * Fps
+             * @default 18
+             */
+            fps: number;
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+        };
         /**
          * FilmFormat
          * @enum {string}
@@ -262,44 +300,6 @@ export interface components {
              * @default 0
              */
             y: number;
-        };
-        /** ProjectFilmData */
-        ProjectFilmData: {
-            /**
-             * Date
-             * @default June 1977
-             */
-            date: string;
-            /**
-             * Author
-             * @default
-             */
-            author: string;
-            /**
-             * Description
-             * @default
-             */
-            description: string;
-            /**
-             * Format
-             * @default super8
-             */
-            format: components["schemas"]["FilmFormat"] | string;
-            /**
-             * Stock
-             * @default
-             */
-            stock: string;
-            /**
-             * Fps
-             * @default 18
-             */
-            fps: number;
-            /**
-             * Tags
-             * @default []
-             */
-            tags: string[];
         };
         /** ProjectId */
         ProjectId: {
@@ -621,7 +621,7 @@ export interface operations {
             };
         };
     };
-    get_project_metadata_api_project_metadata_get: {
+    get_project_filmdata_api_project_filmdata_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -636,12 +636,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectFilmData"];
+                    "application/json": components["schemas"]["FilmData"];
                 };
             };
         };
     };
-    put_project_metadata_api_project_metadata_put: {
+    put_project_filmdata_api_project_filmdata_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -650,7 +650,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProjectFilmData"];
+                "application/json": components["schemas"]["FilmData"];
             };
         };
         responses: {
@@ -660,7 +660,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectFilmData"];
+                    "application/json": components["schemas"]["FilmData"];
                 };
             };
             /** @description Not Found */

@@ -4,15 +4,15 @@ import {
     AspectRatio,
     Box,
     Button,
-    Card,
+    Card, Container,
     DataList,
     Heading,
     HStack,
     Image,
-    Separator,
     Spinner,
     Switch,
-    Text
+    Text,
+    VStack
 } from "@chakra-ui/react";
 
 import {ApiFetchPreviewImage} from "./api.ts";
@@ -56,19 +56,22 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
         const loadImage = async () => {
             const newImage = await ApiFetchPreviewImage()
             setPreviewImageUrl(newImage)
-            setImageLoading(false)
-            if (props.onImageContentChange && imageRef.current) {
-                props.onImageContentChange(imageRef.current)
-            }
         }
         setImageLoading(true)
         loadImage().catch(console.error);
     }
 
+    /** load one image as soon as the component mounts */
     useEffect(() => {
         handleNewPreviewImage()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, []);
+
+    const handleImageLoaded = () => {
+        setImageLoading(false)
+        if (props.onImageContentChange && imageRef.current) {
+            props.onImageContentChange(imageRef.current)
+        }
+    }
 
     /////////////////////////////////////////////////////////////////////////
     // Handle element resize
@@ -121,32 +124,35 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
     return (
         <ImageRefsContext value={{imgDivRef, imageRef} as unknown as null}>
             <HStack padding={"0.5%"} align="top" id="hstack">
-                <Card.Root flex={1} variant="elevated" bg={"gray.500"}>
+                <Card.Root flex={"none"} variant="elevated" bg={"gray.500"} size={"sm"}>
                     <Card.Body>
-                        <Button onClick={handleNewPreviewImage}>
-                            <LuCamera/>Snap
-                        </Button>
-                        <Switch.Root>
-                            <Switch.HiddenInput/>
-                            <Switch.Label>Live</Switch.Label>
-                            <Switch.Control/>
-                        </Switch.Root>
-                        <Separator/>
-                        <DataList.Root>
-                            <Heading size={"sm"}>Image Size</Heading>
-                            <DataList.Item>
-                                <DataList.ItemLabel>Camera</DataList.ItemLabel>
-                                <DataList.ItemValue>{imageSize.width}x{imageSize.height}</DataList.ItemValue>
-                                <DataList.ItemLabel>Screen</DataList.ItemLabel>
-                                <DataList.ItemValue>{getImageScreenSize().width}x{getImageScreenSize().height}</DataList.ItemValue>
-                                <DataList.ItemLabel>Zoom Factor</DataList.ItemLabel>
-                                <DataList.ItemValue>{getZoomFactor().toFixed(3)}</DataList.ItemValue>
-                            </DataList.Item>
-                        </DataList.Root>
-                        <Separator/>
+                        <VStack alignItems="left">
+                            <Button onClick={handleNewPreviewImage}>
+                                <LuCamera/>New Still Image
+                            </Button>
+                            <Switch.Root>
+                                <Switch.HiddenInput/>
+                                <Switch.Label>Video Feed</Switch.Label>
+                                <Switch.Control/>
+                            </Switch.Root>
+                            <p/>
+                            <Container bg={"gray.700"} centerContent={true} borderRadius="2xl" padding={"2%"}>
+                                <DataList.Root alignItems={"center"}>
+                                    <Heading size={"sm"}>Image Size</Heading>
+                                    <DataList.Item alignItems={"center"}>
+                                        <DataList.ItemLabel>Camera</DataList.ItemLabel>
+                                        <DataList.ItemValue>{imageSize.width}x{imageSize.height}</DataList.ItemValue>
+                                        <DataList.ItemLabel>Screen</DataList.ItemLabel>
+                                        <DataList.ItemValue>{getImageScreenSize().width}x{getImageScreenSize().height}</DataList.ItemValue>
+                                        <DataList.ItemLabel>Zoom Factor</DataList.ItemLabel>
+                                        <DataList.ItemValue>{getZoomFactor().toFixed(3)}</DataList.ItemValue>
+                                    </DataList.Item>
+                                </DataList.Root>
+                            </Container>
+                        </VStack>
                     </Card.Body>
                 </Card.Root>
-                <Card.Root flex={3} variant="elevated" bg={"black"}>
+                <Card.Root flex={4} variant="elevated" bg={"black"} size={"sm"}>
                     <Card.Body>
                         <AspectRatio width={"100%"}
                                      height={"100%"}
@@ -166,6 +172,7 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
                                            alt={"mock"}
                                            objectFit="contain"
                                            htmlHeight={"100%"}
+                                           onLoad={() => handleImageLoaded()}
                                     />
                                 </div>
                                 {imageLoading ?
@@ -181,7 +188,7 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
                         </AspectRatio>
                     </Card.Body>
                 </Card.Root>
-                <Card.Root flex={2} variant="elevated" bg={"gray.500"}>
+                <Card.Root flex={2} variant="elevated" bg={"gray.500"} size={"sm"}>
                     <Card.Body>
                         {props.children}
                     </Card.Body>

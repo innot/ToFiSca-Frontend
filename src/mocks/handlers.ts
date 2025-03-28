@@ -1,7 +1,7 @@
 import {http, HttpResponse} from 'msw'
 
 import mockImage from "./mock_frame_image.png"
-import {PerforationLocation, Point, ScanArea} from "../project_setup/types.ts";
+import {FilmData, PerforationLocation, Point, ProjectPaths, ScanArea} from "../project_setup/types.ts";
 
 
 const mockPerforationLocation: PerforationLocation = {
@@ -17,10 +17,23 @@ const mockScanArea: ScanArea = {
     size: {width: 0.6, height: 0.7}
 }
 
+
+const mockFilmData: FilmData = {
+    date: "",
+    author: "",
+    description: "",
+    format: "super8",
+    fps: 18,
+    stock: "",
+    tags: [""]
+}
+
 interface ProjectState {
     allProjects: { [key: string]: number }
     name?: string
     id: number
+    paths: ProjectPaths
+    filmData: FilmData,
     perfLocation?: PerforationLocation,
     scanArea?: ScanArea,
 }
@@ -29,9 +42,12 @@ const projectState: ProjectState = {
     allProjects: {"foo": 1, "bar": 2, "baz": 3},
     name: "",
     id: 4,
+    paths: {scanned_images: "{project}/images/scanned", processed_images: "{project}/images/processed"},
+    filmData: mockFilmData,
     perfLocation: undefined,
     scanArea: undefined,
 }
+
 
 
 export const handlers = [
@@ -45,8 +61,8 @@ export const handlers = [
     }),
 
     http.put("/api/project/name", async ({request}) => {
-        const url = new URL(request.url)
-        const name = url.searchParams.get('name')
+        const postData = await request.json() as {name: string};
+        const name = postData.name
         if (!name) {
             return HttpResponse.json({msg: `Name parameter is empty`}, {
                 status: 400,
@@ -67,6 +83,23 @@ export const handlers = [
         return HttpResponse.json({id: projectState.id});
     }),
 
+    http.get("/api/project/paths", async () => {
+        return HttpResponse.json(projectState.paths)
+    }),
+
+    http.put("/api/project/paths", async ({request}) => {
+        projectState.paths = await request.json() as ProjectPaths;
+        return HttpResponse.json(projectState.paths);
+    }),
+
+    http.get("/api/project/filmdata", async () => {
+        return HttpResponse.json(projectState.filmData)
+    }),
+
+    http.put("/api/project/filmdata", async ({request}) => {
+        projectState.filmData = await request.json() as FilmData;
+        return HttpResponse.json(projectState.filmData);
+    }),
 
     http.get("/api/project/perf/location", async () => {
         const loc = projectState.perfLocation;
@@ -90,6 +123,7 @@ export const handlers = [
             })
         }
         projectState.perfLocation = postData as PerforationLocation;
+        projectState.scanArea = {ref_delta: {dx: 0.0, dy: -0.3}, size: {width: 0.6, height: 0.5}};
         return new HttpResponse(null, {
             status: 204,
             statusText: "Successfully saved"
@@ -122,7 +156,7 @@ export const handlers = [
     }),
 
     http.get('/api/project/scanarea', () => {
-        if (!projectState.scanArea) {
+        if (!projectState.perfLocation) {
             return HttpResponse.json({msg: "No Perf"},{
                 status:404,
                 statusText: "No Perforation Location set"
@@ -134,7 +168,6 @@ export const handlers = [
     http.put('/api/project/scanarea', async ({request}) => {
 
         const postData = await request.json();
-        console.info(`/api/project/scanarea received: ${JSON.stringify(postData)}`);
 
         if (!(typeof postData === 'object') || !postData || !('ref_delta' in postData)) {
             return HttpResponse.json({msg: "foobar"}, {

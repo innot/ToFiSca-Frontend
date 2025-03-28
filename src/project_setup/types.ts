@@ -5,6 +5,8 @@ export type Point = components["schemas"]["Point"]
 export type PerforationLocation = components["schemas"]["PerforationLocation"];
 export type ScanArea = components["schemas"]["ScanArea"];
 export type ProjectSetupState = components["schemas"]["ProjectSetupState"];
+export type FilmData = components["schemas"]["FilmData"];
+export type ProjectPaths = components["schemas"]["ProjectPaths"];
 
 
 export interface Rect {

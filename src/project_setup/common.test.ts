@@ -4,15 +4,14 @@ import {rect2ScanArea, scaledRect2ScanArea, scanAreaToRect, scanAreaToScaledRect
 
 test("scanAreaToRect", () => {
     const perfLoc: PerforationLocation = {
-        reference: {x: 0.1, y: 0.2},
-        top_edge: 0,
-        bottom_edge: 0,
-        inner_edge: 0,
+        top_edge: 0.1,
+        bottom_edge: 0.3,
+        inner_edge: 0.1,
         outer_edge: 0
     }
-    const s: ScanArea = {ref_delta: {dx: 0.3, dy: 0.4}, size: {width: 0.5, height: 0.6}}
+    const s: ScanArea = {perf_ref: perfLoc, ref_delta: {dx: 0.3, dy: 0.4}, size: {width: 0.5, height: 0.6}}
 
-    const r1: Rect = scanAreaToRect(s, perfLoc)
+    const r1: Rect = scanAreaToRect(s)
 
     expect(r1.top).toBeCloseTo(0.6, 0)
     expect(r1.bottom).toBeCloseTo(1.2, 0)
@@ -29,7 +28,7 @@ test("scanAreaToRect", () => {
     // With scale
 
     const scale: Size = {width: 100, height: 1000}
-    const r2: Rect = scanAreaToScaledRect(s, perfLoc, scale)
+    const r2: Rect = scanAreaToScaledRect(s, scale)
 
     expect(r2.top).toBeCloseTo(600, 0)
     expect(r2.bottom).toBeCloseTo(1200, 0)

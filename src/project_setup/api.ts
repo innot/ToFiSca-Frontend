@@ -1,5 +1,5 @@
 export const ApiFetchPreviewImage = async () => {
-    const response = await fetch('/api/preview');
+    const response = await fetch('/api/camera/preview');
     if (!response.ok) {
         // todo: show error message
     }

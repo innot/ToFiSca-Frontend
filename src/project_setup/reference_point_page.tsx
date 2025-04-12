@@ -315,8 +315,9 @@ function drawCanvas(canvas: HTMLCanvasElement,
         ctx.stroke();
 
         // Draw the Reference Point
-        const rx = perforation.reference.x * canvasWidth;
-        const ry = perforation.reference.y * canvasHeight;
+        const ref = {x: perforation.inner_edge, y: (perforation.top_edge + perforation.bottom_edge) / 2};
+        const rx = ref.x * canvasWidth;
+        const ry = ref.y * canvasHeight;
         const radius = canvasWidth * 0.03
         const sin_r = radius * Math.sin(Math.PI / 4); // 45°
         const cos_r = radius * Math.cos(Math.PI / 4);

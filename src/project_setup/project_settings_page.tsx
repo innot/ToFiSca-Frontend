@@ -1,49 +1,55 @@
-import {Box, Button, Card, createListCollection, Field, HStack, Input, Select, Stack, VStack} from "@chakra-ui/react";
+import {
+    Box,
+    Button,
+    Card,
+    createListCollection,
+    Field,
+    HStack,
+    Input,
+    ListCollection,
+    Select,
+    Stack,
+    VStack
+} from "@chakra-ui/react";
+import * as React from "react";
 import {useEffect, useState} from "react";
 import {$api, ApiError} from "../api";
 import {ApiErrorDialog} from "./api_error_dialog";
 import {useQueryClient} from "@tanstack/react-query";
+
 import {SetupPageProps} from "./project_setup";
-import {FilmData, ProjectPaths} from "./types.ts";
+import {FilmData, FilmFormat, ProjectPathEntry} from "./types.ts";
+
 
 export interface Props extends SetupPageProps {
-    name: string;
-    projectId: number
+    // callback for project name changes.
     onProjectNameChange: (name: string) => void;
 }
 
-const FilmFormatFrameRates: { [key: string]: { name: string, framerates: number[] } } = {
-    "super8": {name: "Super8", framerates: [18, 24]},
-    "normal8": {name: "Normal8", framerates: [16, 18, 24, 25]},
-    "normal16": {name: "16mm", framerates: [24]},
-    "unspecified": {name: "Other", framerates: [16, 18, 24, 25, 30, 48, 60]}
-}
-
-const defaultFilmData: FilmData = {
-    date: "",
-    author: "",
-    description: "",
-    format: "unspecified",
-    fps: 18,
-    stock: "",
-    tags: [""]
-}
 
 export default function ProjectSettingsPage(props: Props) {
 
     useQueryClient();
 
-    const [allProjects, setAllProjects] = useState<{ [key: string]: number; }>();
-    const [projectName, setProjectName] = useState<string>(props.name);
-    const [initialProjectName] = useState<string>(props.name);
+    const [allProjects, setAllProjects] = useState<{ [key: string]: string; }>();
+    const [currentProjectName, setCurrentProjectName] = useState<string>();
+    const [initialProjectName, setInitialProjectName] = useState<string>();
+
+    // The project id of the current project. Used for the duplicate name checking.
+    const [projectId, setProjectId] = useState<number>(0)
 
     // The project Paths
-    const [paths, setPaths] = useState<ProjectPaths>({scanned_images: "", processed_images: ""});
-    const [initialPaths, setInitialPaths] = useState<ProjectPaths | null>(null);
+    const [currentPaths, setcurrentPaths] = useState<Map<string, ProjectPathEntry>>();
+    const [initialPaths, setInitialPaths] = useState<Map<string, ProjectPathEntry>>();
 
     // The film data
-    const [filmData, setFilmData] = useState<FilmData>(defaultFilmData);
-    const [initialFilmData, setInitialFilmData] = useState<FilmData | null>(null);
+    const [currentFilmData, setCurrentFilmData] = useState<FilmData>();
+    const [initialFilmData, setInitialFilmData] = useState<FilmData>();
+
+    // The list of all film formats and the two derived collections for the <Select> component
+    const [allFilmFormats, setAllFilmFormats] = useState<FilmFormat[]>([] as FilmFormat[]);
+    const [filmFormatCollection, setFilmFormatCollection] = useState<ListCollection>(createListCollection({items: [] as undefined[]}))
+    const [frameRateCollection, setFrameRateCollection] = useState<ListCollection>(createListCollection({items: [] as undefined[]}));
 
     // Flag to indicate that the current projectName is an invalid Duplicate
     const [warnNameDuplicate, setWarnNameDuplicate] = useState<boolean>(false);
@@ -54,6 +60,60 @@ export default function ProjectSettingsPage(props: Props) {
     /** The last error message from the backend API. Valid until the next API call **/
     const [apiError, setApiError] = useState<ApiError | null>(null);
 
+    /////////////////////////////////////////////////////////////////////////
+    // API Get Project Id
+    /////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Get the Project id from the backend.
+     */
+    const {data: apiGetProjectId, status: apiGetProjectIdStatus} = $api.useQuery(
+        "get",
+        "/api/project/id",
+    );
+
+    useEffect(() => {
+        if (apiGetProjectIdStatus == "success") {
+            setProjectId(apiGetProjectId)
+        }
+    }, [apiGetProjectId, apiGetProjectIdStatus]);
+
+    /////////////////////////////////////////////////////////////////////////
+    // API Get/Put Project Name
+    /////////////////////////////////////////////////////////////////////////
+
+    const {
+        data: apiGetProjectName,
+        status: apiGetProjectNameStatus
+    } = $api.useQuery("get", "/api/project/name", {staleTime: Infinity});
+
+    useEffect(() => {
+        if (apiGetProjectNameStatus == "success") {
+            // Set the currentProjectName, initialProjectName (if not set) and tell the parent about the new name.
+            const name = apiGetProjectName
+            setCurrentProjectName(name)
+            if (!initialProjectName) setInitialProjectName(name)
+            props.onProjectNameChange(name)
+        }
+    }, [apiGetProjectName, apiGetProjectNameStatus, initialProjectName]);
+
+    const {mutate: apiPutProjectNameMutate} = $api.useMutation(
+        "put",
+        "/api/project/name",
+        {
+            onError: async (error) => {
+                if (error instanceof ApiError) {
+                    setApiError(error)
+                } else {
+                    console.error(error)
+                }
+            },
+            onSuccess: async (name) => {
+                // Tell the ProjectSetup parent component about the new name
+                props.onProjectNameChange(name);
+            }
+        }
+    )
 
     /////////////////////////////////////////////////////////////////////////
     // API Get AllProjects
@@ -63,37 +123,67 @@ export default function ProjectSettingsPage(props: Props) {
      * Get the names of all existing projects.
      * Used for checking for duplicate names
      */
-    const {data: apiGetAllProjects, status: apiGetAllProjectsStatus} = $api.useQuery(
+    const {data: apiGetAllProjectsData, status: apiGetAllProjectsStatus} = $api.useQuery(
         "get",
-        "/api/allprojects"
+        "/api/projects/all",
+        {}
     )
 
     useEffect(() => {
         if (apiGetAllProjectsStatus == "success") {
-            setAllProjects(apiGetAllProjects)
+            setAllProjects(apiGetAllProjectsData)
         }
-    }, [apiGetAllProjects, apiGetAllProjectsStatus]);
+    }, [apiGetAllProjectsData, apiGetAllProjectsStatus]);
+
+    /////////////////////////////////////////////////////////////////////////
+    // API Get all FilmFormats
+    /////////////////////////////////////////////////////////////////////////
+
+    const {data: apiFilmFormats, status: apiFilmFormatsStatus} = $api.useQuery(
+        "get",
+        "/api/filmformats",
+        {}
+    );
+
+    useEffect(() => {
+        if (apiFilmFormatsStatus == "success") {
+            const collectionList: { label: string, value: string } [] = [];
+            const formatList: FilmFormat[] = []
+            apiFilmFormats.forEach(format => {
+                collectionList.push({label: format.name, value: format.key})
+                formatList.push(format)
+            })
+            const collection = createListCollection({items: collectionList})
+            setFilmFormatCollection(collection);
+            setAllFilmFormats(formatList)
+        }
+    }, [apiFilmFormats, apiFilmFormatsStatus]);
 
     /////////////////////////////////////////////////////////////////////////
     // API Get/Put Project Paths
     /////////////////////////////////////////////////////////////////////////
-    const {data: apiGetProjectPaths, status: apiGetProjectPathsStatus} = $api.useQuery(
-        "get",
-        "/api/project/paths",
-        {refetchOnWindowFocus: false}
-    )
+
+    const {
+        data: apiAllPaths,
+        status: apiAllPathsStatus
+    } = $api.useQuery("get", "/api/project/allpaths", {staleTime: Infinity})
 
     useEffect(() => {
-        if (apiGetProjectPathsStatus == "success") {
-            const data = apiGetProjectPaths;
-            setPaths(data)
-            if (!initialPaths) setInitialPaths(data)
+        if (apiAllPathsStatus == "success") {
+            const new_paths: Map<string, ProjectPathEntry> = new Map()
+            for (const name in apiAllPaths) {
+                const path = apiAllPaths[name];
+                new_paths.set(name, path!)
+            }
+            setcurrentPaths(new_paths)
+            if (!initialPaths) setInitialPaths(new_paths)    // store initial value for possible revert
         }
-    }, [apiGetProjectPaths, apiGetProjectPathsStatus, initialPaths]);
+    }, [apiAllPaths, apiAllPathsStatus, initialPaths]);
+
 
     const {mutate: apiPutProjectPathsMutate} = $api.useMutation(
         "put",
-        "/api/project/paths",
+        "/api/project/path",
         {
             onError: async (error) => {
                 if (error instanceof ApiError) {
@@ -106,25 +196,31 @@ export default function ProjectSettingsPage(props: Props) {
     )
 
     useEffect(() => {
-        setIsDirty(true)
-        if (paths) apiPutProjectPathsMutate({body: paths})
-    }, [apiPutProjectPathsMutate, paths])
+        // transmit all paths that are different from the one in the database
+        currentPaths?.forEach((path) => {
+            const initial = initialPaths?.get(path.name)
+            if (initial && path.path !== initial?.path) {
+                apiPutProjectPathsMutate({body: path})
+                setIsDirty(true)
+            }
+        })
+    }, [apiPutProjectPathsMutate, initialPaths, currentPaths])
 
 
     /////////////////////////////////////////////////////////////////////////
     // API Get/Put FilmData
     /////////////////////////////////////////////////////////////////////////
 
-    const {data: apiGetFilmdata, status: apiGetFilmdataStatus} = $api.useQuery(
-        "get",
-        "/api/project/filmdata",
-        {refetchOnWindowFocus: true}
-    )
+    const {
+        data: apiGetFilmdata,
+        status: apiGetFilmdataStatus
+    } = $api.useQuery("get", "/api/project/filmdata", {staleTime: Infinity})
 
     useEffect(() => {
         if (apiGetFilmdataStatus == "success") {
-            setFilmData(apiGetFilmdata)
-            if (!initialFilmData) setInitialFilmData(apiGetFilmdata)
+            const filmdata = apiGetFilmdata as FilmData
+            setCurrentFilmData(filmdata)
+            if (!initialFilmData) setInitialFilmData(filmdata)
         }
     }, [apiGetFilmdata, apiGetFilmdataStatus, initialFilmData]);
 
@@ -143,46 +239,148 @@ export default function ProjectSettingsPage(props: Props) {
     )
 
     useEffect(() => {
-        setIsDirty(true)
-        apiPutFilmdataMutate({body: filmData})
-    }, [apiPutFilmdataMutate, filmData])
+        if (currentFilmData) {
+            apiPutFilmdataMutate({body: currentFilmData})
+        }
+        if (initialFilmData) {
+            if (JSON.stringify(currentFilmData) !== JSON.stringify(initialFilmData))
+                setIsDirty(true)
+        }
+    }, [apiPutFilmdataMutate, currentFilmData, initialFilmData])
 
 
     /////////////////////////////////////////////////////////////////////////
+    // UI event Handlers
+    /////////////////////////////////////////////////////////////////////////
 
     /**
-     * Check if the project name already exists.
+     * This handler:
+     *  - filters out any invalid project name characters from the input.
+     *  - checks if the project name already exists in the database.
+     *
+     * @param event The event containing the current value of the input field.
      */
-    useEffect(() => {
-        if (!allProjects) return;
-        const isdup = (projectName in allProjects) && (allProjects[projectName] != props.projectId)
-        setWarnNameDuplicate(isdup)
-    }, [allProjects, projectName, props.projectId]);
+    const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const name = event.target.value
+        // eslint-disable-next-line no-control-regex
+        const sanitizedName = name.replace(/[\u0000-\u001F\u007F-\u009F\\/:*?"<>|]/g, "")
+        setCurrentProjectName(sanitizedName)
 
+        // check if the name already exist and - if yes - output a warning
+        let isdup = false;
+        if (allProjects) {
+            for (const pid in allProjects) {
+                if (parseInt(pid) == projectId) continue // do not check name against the current project
+                if (allProjects[pid] == sanitizedName) isdup = true;
+            }
+        }
+        setWarnNameDuplicate(isdup)
+    }
 
     /**
      * This handler checks if the current project Name is valid and if so tells the parent
      * ProjectSetup Component to send the name to the api
      */
-    const handleOnBlur = () => {
+    const handleNameOnBlur = () => {
         if (!allProjects) return;
-        if (!projectName) { // empty name
-            props.onFinished(props.pageIndex, false)
+        if (!currentProjectName) { // empty name
             return
         }
-        const isdup = (projectName in allProjects) && (allProjects[projectName] != props.projectId)
-        if (!isdup) {
-            props.onProjectNameChange(projectName)
-            props.onFinished(props.pageIndex, true)
+        if (!warnNameDuplicate) {
+            // Send the new name to the database.
+            // If successful the returned value will set the project name of the parent ProjectSetup component.
+            apiPutProjectNameMutate({params: {query: {name: currentProjectName}}})
         }
+
+    }
+
+    /**
+     * Handle changes to a path.
+     *
+     * @param path_string   The name of the path to change
+     * @param path_entry    The new ProjectPathEntry with the changed path
+     */
+    const handlePathOnBlur = (path_string: string, path_entry: ProjectPathEntry) => {
+        if (!currentPaths) return
+        currentPaths.set(path_entry.name, {...path_entry, path: path_string})
+        setcurrentPaths(new Map(currentPaths))
     }
 
     const handleRevertButton = () => {
-        setProjectName(initialProjectName)
-        if (initialPaths) setPaths(initialPaths)
-        if (initialFilmData) setFilmData(initialFilmData)
+        if (initialProjectName) setCurrentProjectName(initialProjectName)
+        if (initialPaths) setcurrentPaths(initialPaths)
+        if (initialFilmData) setCurrentFilmData(initialFilmData)
         setIsDirty(false)
     }
+
+    const handleFilmFormatChange = (name: string | undefined) => {
+        if (!name) return
+        if (!currentFilmData) return
+
+        allFilmFormats.forEach(format => {
+            if (format.key === name) {
+                // Update the filmData
+                const newdata: FilmData = {...currentFilmData, format: format};
+                setCurrentFilmData(newdata)
+
+                // check if current fps is still in the list.
+                // If no set it to the first value of the new framerates
+                if (!format.framerates.includes(newdata.fps)) {
+                    const newdata: FilmData = {...currentFilmData, fps: format.framerates[0]!};
+                    setCurrentFilmData(newdata)
+                }
+            }
+        })
+    }
+
+
+    /////////////////////////////////////////////////////////////////////////
+    // Misc Effects
+    /////////////////////////////////////////////////////////////////////////
+
+    useEffect(() => {
+        if (currentProjectName && !warnNameDuplicate) {
+            props.onFinished(props.pageIndex, true)
+        } else {
+            props.onFinished(props.pageIndex, false)
+        }
+    }, [currentProjectName, warnNameDuplicate]);
+
+    /**
+     * Update the supported framerates state from the newly selected FilmFormat
+     */
+    useEffect(() => {
+        if (!currentFilmData) return
+
+        // update the framerates
+        const list = currentFilmData.format.framerates.map((fps) => {
+            return {label: fps.toString(), value: fps.toString()}
+        })
+        setFrameRateCollection(createListCollection({items: list}))
+    }, [currentFilmData])
+
+    /**
+     * Set the dirty flag if the name, the paths or the data is different from the initial values.
+     */
+    useEffect(() => {
+        let dirty = false
+        if (currentProjectName !== initialProjectName) dirty = true
+        if (JSON.stringify(currentFilmData) !== JSON.stringify(initialFilmData)) dirty = true
+        if (currentPaths && initialPaths) {
+            currentPaths.forEach((value) => {
+                const initial = initialPaths?.get(value.name)
+                if (initial) {
+                    if (JSON.stringify(value) !== JSON.stringify(initial)) dirty = true
+                }
+            })
+        }
+        setIsDirty(dirty)
+    }, [currentFilmData, currentPaths, currentProjectName, initialFilmData, initialPaths, initialProjectName])
+
+
+    /////////////////////////////////////////////////////////////////////////
+    // TSX Component
+    /////////////////////////////////////////////////////////////////////////
 
     return (
         <HStack gap="0.5rem" alignItems="top" width="100%" padding={"1%"}>
@@ -193,14 +391,14 @@ export default function ProjectSettingsPage(props: Props) {
                         <Field.Root required invalid={warnNameDuplicate}>
                             <Field.Label>
                                 Project Name
-                                {!projectName && <Field.RequiredIndicator/>}
+                                {!currentProjectName && <Field.RequiredIndicator/>}
                             </Field.Label>
                             <Input placeholder={"New Project"}
-                                   value={projectName ?? ''}
-                                   onBlur={() => (handleOnBlur())}
-                                   onChange={(e) => setProjectName(e.target.value)}/>
+                                   value={currentProjectName ?? ''}
+                                   onBlur={() => (handleNameOnBlur())}
+                                   onChange={(e) => handleNameChange(e)}/>
                             <Field.ErrorText>
-                                Project <em>'{projectName}'</em> already exists. Please choose a different name
+                                Project '{currentProjectName}' already exists. Please choose a different name
                             </Field.ErrorText>
                         </Field.Root>
                     </Card.Body>
@@ -210,27 +408,19 @@ export default function ProjectSettingsPage(props: Props) {
                         <Card.Title>Server storage paths</Card.Title>
                     </Card.Header>
                     <Card.Body>
-                        <Field.Root>
-                            <Field.Label>
-                                Path for scanned images
-                            </Field.Label>
-                            <Input defaultValue={paths.scanned_images} key={paths.scanned_images}
-                                   onBlur={(e) => {
-                                       const newpaths: ProjectPaths = {...paths, scanned_images: e.target.value};
-                                       setPaths(newpaths)
-                                   }}
-                            />
-                        </Field.Root>
-                        <Field.Root>
-                            <Field.Label>
-                                Path for processed images
-                            </Field.Label>
-                            <Input defaultValue={paths.processed_images} key={paths.processed_images}
-                                   onBlur={(e) => {
-                                       const newpaths: ProjectPaths = {...paths, processed_images: e.target.value};
-                                       setPaths(newpaths)
-                                   }}/>
-                        </Field.Root>
+                        <Stack gap="4" w="full">
+                            {currentPaths ? [...currentPaths.values()].map((path) =>
+                                <Field.Root key={path.name}>
+                                    <Field.Label>
+                                        {path.description}
+                                    </Field.Label>
+                                    <Input defaultValue={path.path} key={path.name}
+                                           onBlur={(e) => (handlePathOnBlur(e.target.value, path))}
+                                    />
+                                    <Field.HelperText>{path.resolved}</Field.HelperText>
+                                </Field.Root>
+                            ) : <Box/>}
+                        </Stack>
                     </Card.Body>
                 </Card.Root>
                 <Box flex={1}/>
@@ -248,31 +438,37 @@ export default function ProjectSettingsPage(props: Props) {
                     <Stack gap="4" w="full">
                         <Field.Root>
                             <Field.Label>Date of Film</Field.Label>
-                            <Input defaultValue={filmData.date} key={filmData.date}
+                            <Input defaultValue={currentFilmData?.date} key={currentFilmData?.date}
                                    placeholder="e.g. June 1980"
                                    onBlur={(e) => {
-                                       const newdata: FilmData = {...filmData, date: e.target.value};
-                                       setFilmData(newdata)
+                                       if (currentFilmData) {
+                                           const newdata: FilmData = {...currentFilmData, date: e.target.value};
+                                           setCurrentFilmData(newdata)
+                                       }
                                    }}
                             />
                         </Field.Root>
                         <Field.Root>
                             <Field.Label>Author</Field.Label>
-                            <Input defaultValue={filmData.author} key={filmData.author}
+                            <Input defaultValue={currentFilmData?.author} key={currentFilmData?.author}
                                    placeholder="Alan Smithee"
                                    onBlur={(e) => {
-                                       const newdata: FilmData = {...filmData, author: e.target.value};
-                                       setFilmData(newdata)
+                                       if (currentFilmData) {
+                                           const newdata: FilmData = {...currentFilmData, author: e.target.value};
+                                           setCurrentFilmData(newdata)
+                                       }
                                    }}
                             />
                         </Field.Root>
                         <Field.Root>
                             <Field.Label>Description</Field.Label>
-                            <Input defaultValue={filmData.description} key={filmData.description}
+                            <Input defaultValue={currentFilmData?.description} key={currentFilmData?.description}
                                    placeholder="Summer Vacation"
                                    onBlur={(e) => {
-                                       const newdata: FilmData = {...filmData, description: e.target.value};
-                                       setFilmData(newdata)
+                                       if (currentFilmData) {
+                                           const newdata: FilmData = {...currentFilmData, description: e.target.value};
+                                           setCurrentFilmData(newdata)
+                                       }
                                    }}
                             />
                         </Field.Root>
@@ -289,14 +485,9 @@ export default function ProjectSettingsPage(props: Props) {
                 </Card.Header>
                 <Card.Body>
                     <Stack gap="4" w="full">
-                        <Select.Root value={[filmData.format]}
-                                     onValueChange={(e) => {
-                                         if (e.value.length >= 1 && e.value[0]) {
-                                             const newdata = {...filmData, format: e.value[0]}
-                                             setFilmData(newdata)
-                                         }
-                                     }}
-                                     collection={formatCollection()}>
+                        <Select.Root value={(currentFilmData ? [currentFilmData.format.key,] : [])}
+                                     onValueChange={(e) => handleFilmFormatChange(e.value[0])}
+                                     collection={filmFormatCollection}>
                             <Select.Label>Film Format</Select.Label>
                             <Select.Control>
                                 <Select.Trigger>
@@ -308,23 +499,23 @@ export default function ProjectSettingsPage(props: Props) {
                             </Select.Control>
                             <Select.Positioner>
                                 <Select.Content>
-                                    {formatCollection().items.map((name) => (
-                                        <Select.Item item={name} key={name.value}>
-                                            {name.label}
+                                    {filmFormatCollection.items.map((format) => (
+                                        <Select.Item item={format} key={format.value}>
+                                            {format.label}
                                             <Select.ItemIndicator/>
                                         </Select.Item>
                                     ))}
                                 </Select.Content>
                             </Select.Positioner>
                         </Select.Root>
-                        <Select.Root value={[filmData.fps.toString()]}
+                        <Select.Root value={(currentFilmData ? [currentFilmData.fps.toString()] : [])}
                                      onValueChange={(e) => {
-                                         if (e.value.length >= 1 && e.value[0]) {
-                                             const newdata = {...filmData, fps: Number(e.value[0])}
-                                             setFilmData(newdata)
+                                         if (currentFilmData) {
+                                             const newdata = {...currentFilmData, fps: Number(e.value[0])}
+                                             setCurrentFilmData(newdata)
                                          }
                                      }}
-                                     collection={framerateCollection(filmData.format)}>
+                                     collection={frameRateCollection}>
                             <Select.Label>Frames per Second</Select.Label>
                             <Select.Control>
                                 <Select.Trigger>
@@ -336,9 +527,9 @@ export default function ProjectSettingsPage(props: Props) {
                             </Select.Control>
                             <Select.Positioner>
                                 <Select.Content>
-                                    {framerateCollection(filmData.format).items.map((name) => (
-                                        <Select.Item item={name} key={name.value}>
-                                            {name.label}
+                                    {frameRateCollection.items.map((rate) => (
+                                        <Select.Item item={rate} key={rate.value}>
+                                            {rate.label}
                                             <Select.ItemIndicator/>
                                         </Select.Item>
                                     ))}
@@ -354,24 +545,4 @@ export default function ProjectSettingsPage(props: Props) {
             </Card.Root>
         </HStack>
     )
-}
-
-
-const formatCollection = () => {
-    const list = [];
-    for (const [key, data] of Object.entries(FilmFormatFrameRates)) {
-        list.push({label: data.name, value: key})
-    }
-    return createListCollection({items: list})
-}
-
-const framerateCollection = (format: string) => {
-    const list: { label: string; value: string; }[] = [];
-    if (format in FilmFormatFrameRates) {
-        const rates = FilmFormatFrameRates[format]?.framerates;
-        rates?.forEach(rate => {
-            list.push({label: rate.toString(), value: rate.toString()})
-        })
-    }
-    return createListCollection({items: list})
 }

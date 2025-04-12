@@ -45,6 +45,9 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
     /** The URL to load the image from. Either the Preview Still image or a live feed. */
     const [previewImageUrl, setPreviewImageUrl] = useState<string>();
 
+    /** The state of the Live Video Switch */
+    const [liveSelected, setLiveSelected] = useState(false)
+
     /** current size onscreen size of the image */
     const [imageSize, setImageSize] = useState<Size>({width: 0, height: 0});
 
@@ -52,19 +55,19 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
     const dpr = useDevicePixelRatio({defaultDpr: 1, round: false, maxDpr: 10});
 
 
+    /////////////////////////////////////////////////////////////////////////
+    // Handle preview image reload
+    /////////////////////////////////////////////////////////////////////////
+
     const handleNewPreviewImage = () => {
         const loadImage = async () => {
             const newImage = await ApiFetchPreviewImage()
             setPreviewImageUrl(newImage)
         }
+        setLiveSelected(false)
         setImageLoading(true)
         loadImage().catch(console.error);
     }
-
-    /** load one image as soon as the component mounts */
-    useEffect(() => {
-        handleNewPreviewImage()
-    }, []);
 
     const handleImageLoaded = () => {
         setImageLoading(false)
@@ -72,6 +75,18 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
             props.onImageContentChange(imageRef.current)
         }
     }
+
+    /** load one image as soon as the component mounts */
+    useEffect(() => {
+        handleNewPreviewImage()
+    }, []);
+
+    /** If live image is selected change the url of the image to the live feed **/
+    useEffect(() => {
+        if (liveSelected) {
+            setPreviewImageUrl("/api/camera/live")
+        }
+    }, [liveSelected]);
 
     /////////////////////////////////////////////////////////////////////////
     // Handle element resize
@@ -130,7 +145,9 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
                             <Button onClick={handleNewPreviewImage}>
                                 <LuCamera/>New Still Image
                             </Button>
-                            <Switch.Root>
+                            <Switch.Root
+                                checked={liveSelected}
+                                onCheckedChange={(e) => setLiveSelected(e.checked)}>
                                 <Switch.HiddenInput/>
                                 <Switch.Label>Video Feed</Switch.Label>
                                 <Switch.Control/>

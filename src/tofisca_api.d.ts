@@ -4,15 +4,18 @@
  */
 
 export interface paths {
-    "/api/allprojects": {
+    "/api/projects/all": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get All Projects */
-        get: operations["get_all_projects_api_allprojects_get"];
+        /**
+         * Get All Projects
+         * @description A dictionary of all projects ids and their name
+         */
+        get: operations["get_all_projects_api_projects_all_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -21,15 +24,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/project/setup_state": {
+    "/api/projects/active": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Project Setup State */
-        get: operations["get_project_setup_state_api_project_setup_state_get"];
+        /**
+         * Get Active Project
+         * @description Get the pid of the currently active project.
+         */
+        get: operations["get_active_project_api_projects_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/load": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Load Project
+         * @description Load the project with the given id and make it the active one.
+         *     :param pid: Valid Project ID
+         */
+        put: operations["load_project_api_projects_load_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/new": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** New Project */
+        post: operations["new_project_api_projects_new_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Project */
+        delete: operations["delete_project_api_projects_delete_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/filmformats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get All Filmformats */
+        get: operations["get_all_filmformats_api_filmformats_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -45,7 +123,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Project Id */
+        /**
+         * Get Project Id
+         * @description The id of the currently active project.
+         */
         get: operations["get_project_id_api_project_id_get"];
         put?: never;
         post?: never;
@@ -62,9 +143,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Project Name */
+        /**
+         * Get Project Name
+         * @description Get the name of the currently active project.
+         */
         get: operations["get_project_name_api_project_name_get"];
-        /** Put Project Name */
+        /**
+         * Put Project Name
+         * @description Change the name of the currently active project.
+         *     The new name must be unique and must not contain any characters that are unusable for a filesystem name.
+         */
         put: operations["put_project_name_api_project_name_put"];
         post?: never;
         delete?: never;
@@ -73,17 +161,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/project/paths": {
+    "/api/project/allpaths": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Project Paths */
-        get: operations["get_project_paths_api_project_paths_get"];
-        /** Update Project Paths */
-        put: operations["update_project_paths_api_project_paths_put"];
+        /** Get All Paths */
+        get: operations["get_all_paths_api_project_allpaths_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/project/path": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Project Path */
+        get: operations["get_project_path_api_project_path_get"];
+        /** Put Project Path */
+        put: operations["put_project_path_api_project_path_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -190,23 +295,181 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/camera/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Camera Preview */
+        get: operations["get_camera_preview_api_camera_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/camera/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Camera Live
+         * @description Start a stream with MJPEG images.
+         */
+        get: operations["get_camera_live_api_camera_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** Error */
-        Error: {
+        /** APIInvalidDataError */
+        APIInvalidDataError: {
             /**
-             * Msg
+             * Error Type
+             * @description Error type. The class name of the error
              * @default
              */
-            msg: string;
+            error_type: string;
+            /**
+             * Title
+             * @description Human-readable error title
+             */
+            title: string;
+            /**
+             * Details
+             * @description Detailed description
+             * @default No details available
+             */
+            details: string;
+            /**
+             * Stacktrace
+             * @description Stack trace. Only for unhandled exceptions.
+             * @default
+             */
+            stacktrace: string;
+        };
+        /** APINoActiveProject */
+        APINoActiveProject: {
+            /**
+             * Error Type
+             * @description Error type. The class name of the error
+             * @default
+             */
+            error_type: string;
+            /**
+             * Title
+             * @default No active project
+             */
+            title: string;
+            /**
+             * Details
+             * @default No Project has been loaded. Please load a project first.
+             */
+            details: string;
+            /**
+             * Stacktrace
+             * @description Stack trace. Only for unhandled exceptions.
+             * @default
+             */
+            stacktrace: string;
+        };
+        /** APIObjectNotFoundError */
+        APIObjectNotFoundError: {
+            /**
+             * Error Type
+             * @description Error type. The class name of the error
+             * @default
+             */
+            error_type: string;
+            /**
+             * Title
+             * @description Human-readable error title
+             */
+            title: string;
+            /**
+             * Details
+             * @description Detailed description
+             * @default No details available
+             */
+            details: string;
+            /**
+             * Stacktrace
+             * @description Stack trace. Only for unhandled exceptions.
+             * @default
+             */
+            stacktrace: string;
+        };
+        /** APIProjectAlreadyExists */
+        APIProjectAlreadyExists: {
+            /**
+             * Error Type
+             * @description Error type. The class name of the error
+             * @default
+             */
+            error_type: string;
+            /**
+             * Title
+             * @default Project already exists
+             */
+            title: string;
+            /**
+             * Details
+             * @description Detailed description
+             * @default No details available
+             */
+            details: string;
+            /**
+             * Stacktrace
+             * @description Stack trace. Only for unhandled exceptions.
+             * @default
+             */
+            stacktrace: string;
+        };
+        /** APIProjectDoesNotExist */
+        APIProjectDoesNotExist: {
+            /**
+             * Error Type
+             * @description Error type. The class name of the error
+             * @default
+             */
+            error_type: string;
+            /**
+             * Title
+             * @default Project does not exist
+             */
+            title: string;
+            /**
+             * Details
+             * @description Detailed description
+             * @default No details available
+             */
+            details: string;
+            /**
+             * Stacktrace
+             * @description Stack trace. Only for unhandled exceptions.
+             * @default
+             */
+            stacktrace: string;
         };
         /** FilmData */
-        FilmData: {
+        "FilmData-Input": {
             /**
              * Date
-             * @default June 1977
+             * @default
              */
             date: string;
             /**
@@ -219,32 +482,93 @@ export interface components {
              * @default
              */
             description: string;
-            /**
-             * Format
-             * @default super8
-             */
-            format: components["schemas"]["FilmFormat"] | string;
-            /**
-             * Stock
-             * @default
-             */
-            stock: string;
+            /** @default {
+             *       "key": "super8",
+             *       "name": "Super8",
+             *       "framerates": [
+             *         18,
+             *         24
+             *       ]
+             *     } */
+            format: components["schemas"]["FilmFormat"];
             /**
              * Fps
              * @default 18
              */
             fps: number;
             /**
+             * Stock
+             * @default
+             */
+            stock: string;
+            /**
              * Tags
              * @default []
              */
             tags: string[];
         };
+        /** FilmData */
+        "FilmData-Output": {
+            /**
+             * Date
+             * @default
+             */
+            date: string;
+            /**
+             * Author
+             * @default
+             */
+            author: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** @default {
+             *       "key": "super8",
+             *       "name": "Super8",
+             *       "framerates": [
+             *         18,
+             *         24
+             *       ]
+             *     } */
+            format: components["schemas"]["FilmFormat"];
+            /**
+             * Fps
+             * @default 18
+             */
+            fps: number;
+            /**
+             * Stock
+             * @default
+             */
+            stock: string;
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+        };
+        /** FilmFormat */
+        FilmFormat: {
+            /** @default  */
+            key: components["schemas"]["FilmSpecKey"];
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Framerates
+             * @default []
+             */
+            framerates: number[];
+        };
         /**
-         * FilmFormat
+         * FilmSpecKey
          * @enum {string}
          */
-        FilmFormat: "super8" | "normal8" | "normal16" | "unspecified";
+        FilmSpecKey: "super8" | "normal8" | "std16mm" | "super16" | "unknown";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -285,8 +609,6 @@ export interface components {
              * @default 0
              */
             outer_edge: number;
-            /** @description Reference point for the scan area */
-            reference: components["schemas"]["Point"];
         };
         /** Point */
         Point: {
@@ -301,70 +623,36 @@ export interface components {
              */
             y: number;
         };
-        /** ProjectId */
-        ProjectId: {
-            /**
-             * Id
-             * @default
-             */
-            id: number;
-        };
-        /** ProjectName */
-        ProjectName: {
+        /** ProjectPathEntry */
+        ProjectPathEntry: {
             /**
              * Name
-             * @default
+             * @description An identifier for this path, e.g. 'project' or 'scanned'
              */
             name: string;
-        };
-        /** ProjectPaths */
-        ProjectPaths: {
             /**
-             * Scanned Images
-             * @default images_raw
+             * Description
+             * @description What the path is for.
+             * @default
              */
-            scanned_images: string;
+            description: string;
             /**
-             * Processed Images
-             * @default images_processed
+             * Path
+             * @description The actual path. May be relative to the application storage folder or absolute. Can contain templates.
+             * @default
              */
-            processed_images: string;
-        };
-        /** ProjectSetupState */
-        ProjectSetupState: {
+            path: string;
             /**
-             * Scanareaset
-             * @default false
+             * Resolved
+             * @description The computed absolute path on the filesystem. For info only.
+             * @default
              */
-            scanAreaSet: boolean;
-            /**
-             * Perforationlocationset
-             * @default false
-             */
-            perforationLocationSet: boolean;
-            /**
-             * Cameraset
-             * @default false
-             */
-            cameraSet: boolean;
-            /**
-             * Whitebalanceset
-             * @default false
-             */
-            whiteBalanceSet: boolean;
-            /**
-             * Pathsset
-             * @default false
-             */
-            pathsSet: boolean;
-            /**
-             * Nameset
-             * @default false
-             */
-            nameSet: boolean;
+            resolved: string;
         };
         /** ProjectState */
         ProjectState: {
+            /** @default new */
+            state: components["schemas"]["ProjectStateEnum"];
             /**
              * Current Frame
              * @default 0
@@ -380,19 +668,44 @@ export interface components {
              * @default 0
              */
             last_processed_frame: number;
-            /** @default not_started */
-            state: components["schemas"]["ProjectStateType"];
+            /**
+             * Errors
+             * @default []
+             */
+            errors: string[];
         };
         /**
-         * ProjectStateType
+         * ProjectStateEnum
          * @enum {string}
          */
-        ProjectStateType: "not_started" | "running" | "paused" | "finished" | "error";
+        ProjectStateEnum: "new" | "idle" | "run" | "pause" | "failure" | "finished";
         /** ScanArea */
         ScanArea: {
-            /** @description delta from reference point to top left */
+            /**
+             * @description The reference this ScanArea is based on.
+             * @default {
+             *       "top_edge": 0,
+             *       "bottom_edge": 0,
+             *       "inner_edge": 0,
+             *       "outer_edge": 0
+             *     }
+             */
+            perf_ref: components["schemas"]["PerforationLocation"];
+            /**
+             * @description delta from reference point to top left
+             * @default {
+             *       "dx": 0,
+             *       "dy": 0
+             *     }
+             */
             ref_delta: components["schemas"]["OffsetPoint"];
-            /** @description width of the scan area */
+            /**
+             * @description width of the scan area
+             * @default {
+             *       "width": 0,
+             *       "height": 0
+             *     }
+             */
             size: components["schemas"]["Size"];
         };
         /** Size */
@@ -426,7 +739,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    get_all_projects_api_allprojects_get: {
+    get_all_projects_api_projects_all_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -442,13 +755,13 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        [key: string]: number;
+                        [key: string]: string;
                     };
                 };
             };
         };
     };
-    get_project_setup_state_api_project_setup_state_get: {
+    get_active_project_api_projects_active_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -463,7 +776,136 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectSetupState"];
+                    "application/json": number;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APINoActiveProject"];
+                };
+            };
+        };
+    };
+    load_project_api_projects_load_put: {
+        parameters: {
+            query: {
+                pid: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIProjectDoesNotExist"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIInvalidDataError"];
+                };
+            };
+        };
+    };
+    new_project_api_projects_new_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number;
+                };
+            };
+        };
+    };
+    delete_project_api_projects_delete_delete: {
+        parameters: {
+            query: {
+                pid: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIProjectDoesNotExist"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIInvalidDataError"];
+                };
+            };
+        };
+    };
+    get_all_filmformats_api_filmformats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilmFormat"][];
                 };
             };
         };
@@ -483,7 +925,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectId"];
+                    "application/json": number;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APINoActiveProject"];
                 };
             };
         };
@@ -503,23 +954,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectName"];
+                    "application/json": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APINoActiveProject"];
                 };
             };
         };
     };
     put_project_name_api_project_name_put: {
         parameters: {
-            query?: never;
+            query: {
+                name: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ProjectName"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -527,16 +985,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectName"];
+                    "application/json": string;
                 };
             };
-            /** @description Bad Request */
-            400: {
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["APINoActiveProject"];
                 };
             };
             /** @description Conflict */
@@ -545,21 +1003,21 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["APIProjectAlreadyExists"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Unprocessable Content */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["APIInvalidDataError"];
                 };
             };
         };
     };
-    get_project_paths_api_project_paths_get: {
+    get_all_paths_api_project_allpaths_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -574,31 +1032,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectPaths"];
-                };
-            };
-        };
-    };
-    update_project_paths_api_project_paths_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ProjectPaths"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectPaths"];
+                    "application/json": {
+                        [key: string]: components["schemas"]["ProjectPathEntry"];
+                    };
                 };
             };
             /** @description Not Found */
@@ -607,7 +1043,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["APINoActiveProject"];
+                };
+            };
+        };
+    };
+    get_project_path_api_project_path_get: {
+        parameters: {
+            query: {
+                name: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectPathEntry"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIObjectNotFoundError"];
                 };
             };
             /** @description Validation Error */
@@ -617,6 +1084,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_project_path_api_project_path_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectPathEntry"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectPathEntry"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIObjectNotFoundError"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIInvalidDataError"];
                 };
             };
         };
@@ -636,7 +1145,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FilmData"];
+                    "application/json": components["schemas"]["FilmData-Output"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIObjectNotFoundError"];
                 };
             };
         };
@@ -650,7 +1168,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FilmData"];
+                "application/json": components["schemas"]["FilmData-Input"];
             };
         };
         responses: {
@@ -660,7 +1178,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FilmData"];
+                    "application/json": components["schemas"]["FilmData-Output"];
                 };
             };
             /** @description Not Found */
@@ -669,16 +1187,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["APINoActiveProject"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Unprocessable Content */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["APIInvalidDataError"];
                 };
             };
         };
@@ -699,6 +1217,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectState"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APINoActiveProject"];
                 };
             };
         };
@@ -727,7 +1254,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["APINoActiveProject"];
                 };
             };
         };
@@ -752,6 +1279,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PerforationLocation"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APINoActiveProject"];
                 };
             };
             /** @description Validation Error */
@@ -793,7 +1329,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["APINoActiveProject"];
                 };
             };
             /** @description Validation Error */
@@ -831,7 +1367,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["APINoActiveProject"];
                 };
             };
         };
@@ -858,6 +1394,15 @@ export interface operations {
                     "application/json": components["schemas"]["ScanArea"];
                 };
             };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APINoActiveProject"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -865,6 +1410,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_camera_preview_api_camera_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "image/png": unknown;
+                };
+            };
+        };
+    };
+    get_camera_live_api_camera_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "multipart/x-mixed-replace; boundary=---frame": string;
                 };
             };
         };

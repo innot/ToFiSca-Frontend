@@ -1,7 +1,8 @@
 import {http, HttpResponse} from 'msw'
 
 import mockImage from "./mock_frame_image.png"
-import {FilmData, PerforationLocation, Point, ProjectPaths, ScanArea} from "../project_setup/types.ts";
+import {FilmData, FilmFormat, PerforationLocation, Point, ProjectPathEntry, ScanArea} from "../project_setup/types.ts";
+import {components} from "../tofisca_api";
 
 
 const mockPerforationLocation: PerforationLocation = {
@@ -9,60 +10,103 @@ const mockPerforationLocation: PerforationLocation = {
     bottom_edge: 0.6,
     inner_edge: 0.22,
     outer_edge: 0.1,
-    reference: {x: 0.22, y: 0.5},
 }
 
 const mockScanArea: ScanArea = {
+    perf_ref: mockPerforationLocation,
     ref_delta: {dx: 0.1, dy: -0.35},
     size: {width: 0.6, height: 0.7}
 }
 
+const mockFilmFormats: FilmFormat[] = [
+    {key: 'super8', name: 'Super8', framerates: [18.0, 24.0]} as FilmFormat,
+    {key: 'normal8', name: '8mm Regular', framerates: [18.0, 24.0]} as FilmFormat,
+    {key: 'std16mm', name: '16mm Standard', framerates: [24.0]} as FilmFormat,
+    {key: 'super16', name: 'Super 16', framerates: [24.0]} as FilmFormat,
+    {key: 'unknown', name: 'Unknown', framerates: [16, 18, 20, 24]} as FilmFormat,
+]
 
 const mockFilmData: FilmData = {
     date: "",
     author: "",
     description: "",
-    format: "super8",
+    format: mockFilmFormats[0]!,
     fps: 18,
     stock: "",
     tags: [""]
 }
 
 interface ProjectState {
-    allProjects: { [key: string]: number }
-    name?: string
+    allProjects: { [key: string]: string }
+    name: string
     id: number
-    paths: ProjectPaths
+    paths: { [key: string]: components["schemas"]["ProjectPathEntry"] }
     filmData: FilmData,
     perfLocation?: PerforationLocation,
     scanArea?: ScanArea,
 }
 
+const mockProjectPaths = {
+    'project': {
+        'name': 'project',
+        'description': 'General project data storage',
+        'path': '${name}',
+        'resolved': '/var/data/tofisca/TestProject'
+    } as ProjectPathEntry,
+    'scanned': {
+        'name': 'scanned',
+        'description': 'Folder for raw scanned images',
+        'path': '${project}/scanned_images',
+        'resolved': '/var/data/tofisca/TestProject/scanned_images'
+    } as ProjectPathEntry,
+    'final': {
+        'name': 'final',
+        'description': 'Images after processing',
+        'path': '${project}/final_images',
+        'resolved': '/var/data/tofisca/TestProject/final_images'
+    } as ProjectPathEntry,
+}
+
+
 const projectState: ProjectState = {
-    allProjects: {"foo": 1, "bar": 2, "baz": 3},
-    name: "",
+    allProjects: {"1": "foo", "2": "bar", "3": "baz"},
+    name: "Project 123",
     id: 4,
-    paths: {scanned_images: "{project}/images/scanned", processed_images: "{project}/images/processed"},
+    paths: mockProjectPaths,
     filmData: mockFilmData,
     perfLocation: undefined,
     scanArea: undefined,
 }
 
 
-
 export const handlers = [
 
-    http.get("/api/allprojects", async () => {
+    /**
+     * Project Manager API calls
+     */
+
+    http.get("/api/projects/all", async () => {
         return HttpResponse.json(projectState.allProjects);
     }),
 
+    /**
+     * Global Lists
+     */
+    http.get("/api/filmformats", async () => {
+        return HttpResponse.json(mockFilmFormats);
+    }),
+
+    /**
+     * Project API calls
+     */
+
     http.get("/api/project/name", async () => {
-        return HttpResponse.json({name: projectState.name});
+        return HttpResponse.json(projectState.name);
     }),
 
     http.put("/api/project/name", async ({request}) => {
-        const postData = await request.json() as {name: string};
-        const name = postData.name
+        const url = new URL(request.url)
+        const name = url.searchParams.get('name')
         if (!name) {
             return HttpResponse.json({msg: `Name parameter is empty`}, {
                 status: 400,
@@ -76,20 +120,21 @@ export const handlers = [
             })
         }
         projectState.name = name;
-        return HttpResponse.json({name: name});
+        return HttpResponse.json(name);
     }),
 
     http.get("/api/project/id", async () => {
-        return HttpResponse.json({id: projectState.id});
+        return HttpResponse.json(projectState.id);
     }),
 
-    http.get("/api/project/paths", async () => {
+    http.get("/api/project/allpaths", async () => {
         return HttpResponse.json(projectState.paths)
     }),
 
-    http.put("/api/project/paths", async ({request}) => {
-        projectState.paths = await request.json() as ProjectPaths;
-        return HttpResponse.json(projectState.paths);
+    http.put("/api/project/path", async ({request}) => {
+        const path = await request.json() as ProjectPathEntry;
+        projectState.paths[path.name] = path
+        return HttpResponse.json(path);
     }),
 
     http.get("/api/project/filmdata", async () => {
@@ -122,8 +167,9 @@ export const handlers = [
                 statusText: "Validation Error"
             })
         }
-        projectState.perfLocation = postData as PerforationLocation;
-        projectState.scanArea = {ref_delta: {dx: 0.0, dy: -0.3}, size: {width: 0.6, height: 0.5}};
+        const perfLoc = postData as PerforationLocation
+        projectState.perfLocation = perfLoc
+        projectState.scanArea = {perf_ref: perfLoc, ref_delta: {dx: 0.0, dy: -0.3}, size: {width: 0.6, height: 0.5}};
         return new HttpResponse(null, {
             status: 204,
             statusText: "Successfully saved"
@@ -157,8 +203,8 @@ export const handlers = [
 
     http.get('/api/project/scanarea', () => {
         if (!projectState.perfLocation) {
-            return HttpResponse.json({msg: "No Perf"},{
-                status:404,
+            return HttpResponse.json({msg: "No Perf"}, {
+                status: 404,
                 statusText: "No Perforation Location set"
             })
         }
@@ -183,7 +229,7 @@ export const handlers = [
     }),
 
 
-    http.get('/api/preview', async (/*{request}*/) => {
+    http.get('/api/camera/preview', async (/*{request}*/) => {
 
         // const url = new URL(request.url)
 

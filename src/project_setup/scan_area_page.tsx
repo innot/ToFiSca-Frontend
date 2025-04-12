@@ -131,7 +131,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
 
         const value = parseFloat(newValue);
 
-        const rect = scanAreaToScaledRect(currentScanArea, perfLocation, imageNaturalSize)
+        const rect = scanAreaToScaledRect(currentScanArea, imageNaturalSize)
 
         switch (edge) {
             case Edge.TOP:
@@ -215,7 +215,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
         e.preventDefault() // do not generate mouse event
 
         // convert scanArea to rectangle
-        const {top, bottom, left, right} = scanAreaToRect(currentScanArea, perfLocation)
+        const {top, bottom, left, right} = scanAreaToRect(currentScanArea)
 
         const p: NormalizedPoint = getNormalizedPointer(e)
 
@@ -263,7 +263,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
         const {width: canvasWidth, height: canvasHeight} = canvasRef.current
 
         // convert scanArea to rectangle
-        let {top, bottom, left, right} = scanAreaToRect(currentScanArea, perfLocation);
+        let {top, bottom, left, right} = scanAreaToRect(currentScanArea);
 
         const p = getNormalizedPointer(e)
 
@@ -439,7 +439,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
         if (!perfLocation) return;
         if (!imageNaturalSize) return;
 
-        const {top, bottom, left, right} = scanAreaToScaledRect(currentScanArea, perfLocation, imageNaturalSize)
+        const {top, bottom, left, right} = scanAreaToScaledRect(currentScanArea, imageNaturalSize)
         setTopValue(Math.round(top));
         setBottomValue(Math.round(bottom));
         setLeftValue(Math.round(left));
@@ -499,7 +499,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
         }
 
         // convert scanArea to scaled rectangle
-        const {top, bottom, left, right} = scanAreaToScaledRect(scanarea, perfLocation, canvas)
+        const {top, bottom, left, right} = scanAreaToScaledRect(scanarea, canvas)
 
         const width = canvas.width;
         const height = canvas.height;
@@ -507,8 +507,9 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
         ctx.clearRect(0, 0, width, height);
 
         // Draw the Reference Point
-        const rx = perfLocation.reference.x * width;
-        const ry = perfLocation.reference.y * height;
+        const ref = {x: perfLocation.inner_edge, y: (perfLocation.top_edge + perfLocation.bottom_edge) / 2}
+        const rx = ref.x * width;
+        const ry = ref.y * height;
         const radius = width * 0.03
         const sin_r = radius * Math.sin(Math.PI / 4); // 45°
         const cos_r = radius * Math.cos(Math.PI / 4);

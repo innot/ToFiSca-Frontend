@@ -14,7 +14,7 @@ import {
 import * as React from "react";
 import {useEffect, useState} from "react";
 import {$api, ApiError} from "../api";
-import {ApiErrorDialog} from "./api_error_dialog";
+import {ApiErrorDialog} from "../common_components/api_error_dialog.tsx";
 import {useQueryClient} from "@tanstack/react-query";
 
 import {SetupPageProps} from "./project_setup";
@@ -401,8 +401,130 @@ export default function ProjectSettingsPage(props: Props) {
                                 Project '{currentProjectName}' already exists. Please choose a different name
                             </Field.ErrorText>
                         </Field.Root>
+                        <Box flex={1}/>
                     </Card.Body>
                 </Card.Root>
+                <Card.Root variant="elevated" bg={"gray.500"} width={"100%"} height={"100%"}>
+                    <Card.Header>
+                        <Card.Title>Film Type</Card.Title>
+                    </Card.Header>
+                    <Card.Body>
+                        <Stack gap="4" w="full">
+                            <Select.Root value={(currentFilmData ? [currentFilmData.format.key,] : [])}
+                                         onValueChange={(e) => handleFilmFormatChange(e.value[0])}
+                                         collection={filmFormatCollection}>
+                                <Select.Label>Film Format</Select.Label>
+                                <Select.Control>
+                                    <Select.Trigger>
+                                        <Select.ValueText/>
+                                    </Select.Trigger>
+                                    <Select.IndicatorGroup>
+                                        <Select.Indicator/>
+                                    </Select.IndicatorGroup>
+                                </Select.Control>
+                                <Select.Positioner>
+                                    <Select.Content>
+                                        {filmFormatCollection.items.map((format) => (
+                                            <Select.Item item={format} key={format.value}>
+                                                {format.label}
+                                                <Select.ItemIndicator/>
+                                            </Select.Item>
+                                        ))}
+                                    </Select.Content>
+                                </Select.Positioner>
+                            </Select.Root>
+                            <Select.Root value={(currentFilmData ? [currentFilmData.fps.toString()] : [])}
+                                         onValueChange={(e) => {
+                                             if (currentFilmData) {
+                                                 const newdata = {...currentFilmData, fps: Number(e.value[0])}
+                                                 setCurrentFilmData(newdata)
+                                             }
+                                         }}
+                                         collection={frameRateCollection}>
+                                <Select.Label>Frames per Second</Select.Label>
+                                <Select.Control>
+                                    <Select.Trigger>
+                                        <Select.ValueText/>
+                                    </Select.Trigger>
+                                    <Select.IndicatorGroup>
+                                        <Select.Indicator/>
+                                    </Select.IndicatorGroup>
+                                </Select.Control>
+                                <Select.Positioner>
+                                    <Select.Content>
+                                        {frameRateCollection.items.map((rate) => (
+                                            <Select.Item item={rate} key={rate.value}>
+                                                {rate.label}
+                                                <Select.ItemIndicator/>
+                                            </Select.Item>
+                                        ))}
+                                    </Select.Content>
+                                </Select.Positioner>
+                            </Select.Root>
+                            <Field.Root>
+                                <Field.Label>Film Stock Material</Field.Label>
+                                <Input placeholder="Not Implemented yet"/>
+                            </Field.Root>
+                        </Stack>
+                    </Card.Body>
+                </Card.Root>
+            </VStack>
+            <VStack flex={"2"}>
+                <Card.Root variant="elevated" bg={"gray.500"} width={"100%"} height={"100%"}>
+                    <Card.Header>
+                        <Card.Title>Project Description</Card.Title>
+                    </Card.Header>
+                    <Card.Body>
+                        <Stack gap="4" w={"100%"} h={"100%"}>
+                            <Field.Root>
+                                <Field.Label>Date of Film</Field.Label>
+                                <Input defaultValue={currentFilmData?.date} key={currentFilmData?.date}
+                                       placeholder="e.g. June 1980"
+                                       onBlur={(e) => {
+                                           if (currentFilmData) {
+                                               const newdata: FilmData = {...currentFilmData, date: e.target.value};
+                                               setCurrentFilmData(newdata)
+                                           }
+                                       }}
+                                />
+                            </Field.Root>
+                            <Field.Root>
+                                <Field.Label>Author</Field.Label>
+                                <Input defaultValue={currentFilmData?.author} key={currentFilmData?.author}
+                                       placeholder="Alan Smithee"
+                                       onBlur={(e) => {
+                                           if (currentFilmData) {
+                                               const newdata: FilmData = {...currentFilmData, author: e.target.value};
+                                               setCurrentFilmData(newdata)
+                                           }
+                                       }}
+                                />
+                            </Field.Root>
+                            <Field.Root>
+                                <Field.Label>Description</Field.Label>
+                                <Input defaultValue={currentFilmData?.description} key={currentFilmData?.description}
+                                       placeholder="Summer Vacation"
+                                       onBlur={(e) => {
+                                           if (currentFilmData) {
+                                               const newdata: FilmData = {
+                                                   ...currentFilmData,
+                                                   description: e.target.value
+                                               };
+                                               setCurrentFilmData(newdata)
+                                           }
+                                       }}
+                                />
+                            </Field.Root>
+                            <Field.Root>
+                                <Field.Label>Tags</Field.Label>
+                                <Input placeholder="Not implemented"/>
+                            </Field.Root>
+                            <Box flex={"1"}/>
+                        </Stack>
+                    </Card.Body>
+                </Card.Root>
+            </VStack>
+            <VStack flex={"1"}>
                 <Card.Root variant="elevated" bg={"gray.500"} width={"100%"}>
                     <Card.Header>
                         <Card.Title>Server storage paths</Card.Title>
@@ -420,129 +542,16 @@ export default function ProjectSettingsPage(props: Props) {
                                     <Field.HelperText>{path.resolved}</Field.HelperText>
                                 </Field.Root>
                             ) : <Box/>}
+                            <Box flex={1}/>
                         </Stack>
                     </Card.Body>
                 </Card.Root>
-                <Box flex={1}/>
                 <Button width="100%"
                         disabled={!isDirty}
                         onClick={handleRevertButton}>
                     Revert to last stored Data
                 </Button>
             </VStack>
-            <Card.Root flex={2} variant="elevated" bg={"gray.500"}>
-                <Card.Header>
-                    <Card.Title>Project Description</Card.Title>
-                </Card.Header>
-                <Card.Body>
-                    <Stack gap="4" w="full">
-                        <Field.Root>
-                            <Field.Label>Date of Film</Field.Label>
-                            <Input defaultValue={currentFilmData?.date} key={currentFilmData?.date}
-                                   placeholder="e.g. June 1980"
-                                   onBlur={(e) => {
-                                       if (currentFilmData) {
-                                           const newdata: FilmData = {...currentFilmData, date: e.target.value};
-                                           setCurrentFilmData(newdata)
-                                       }
-                                   }}
-                            />
-                        </Field.Root>
-                        <Field.Root>
-                            <Field.Label>Author</Field.Label>
-                            <Input defaultValue={currentFilmData?.author} key={currentFilmData?.author}
-                                   placeholder="Alan Smithee"
-                                   onBlur={(e) => {
-                                       if (currentFilmData) {
-                                           const newdata: FilmData = {...currentFilmData, author: e.target.value};
-                                           setCurrentFilmData(newdata)
-                                       }
-                                   }}
-                            />
-                        </Field.Root>
-                        <Field.Root>
-                            <Field.Label>Description</Field.Label>
-                            <Input defaultValue={currentFilmData?.description} key={currentFilmData?.description}
-                                   placeholder="Summer Vacation"
-                                   onBlur={(e) => {
-                                       if (currentFilmData) {
-                                           const newdata: FilmData = {...currentFilmData, description: e.target.value};
-                                           setCurrentFilmData(newdata)
-                                       }
-                                   }}
-                            />
-                        </Field.Root>
-                        <Field.Root>
-                            <Field.Label>Tags</Field.Label>
-                            <Input placeholder="Not implemented"/>
-                        </Field.Root>
-                    </Stack>
-                </Card.Body>
-            </Card.Root>
-            <Card.Root flex={1} variant="elevated" bg={"gray.500"}>
-                <Card.Header>
-                    <Card.Title>Film Type</Card.Title>
-                </Card.Header>
-                <Card.Body>
-                    <Stack gap="4" w="full">
-                        <Select.Root value={(currentFilmData ? [currentFilmData.format.key,] : [])}
-                                     onValueChange={(e) => handleFilmFormatChange(e.value[0])}
-                                     collection={filmFormatCollection}>
-                            <Select.Label>Film Format</Select.Label>
-                            <Select.Control>
-                                <Select.Trigger>
-                                    <Select.ValueText/>
-                                </Select.Trigger>
-                                <Select.IndicatorGroup>
-                                    <Select.Indicator/>
-                                </Select.IndicatorGroup>
-                            </Select.Control>
-                            <Select.Positioner>
-                                <Select.Content>
-                                    {filmFormatCollection.items.map((format) => (
-                                        <Select.Item item={format} key={format.value}>
-                                            {format.label}
-                                            <Select.ItemIndicator/>
-                                        </Select.Item>
-                                    ))}
-                                </Select.Content>
-                            </Select.Positioner>
-                        </Select.Root>
-                        <Select.Root value={(currentFilmData ? [currentFilmData.fps.toString()] : [])}
-                                     onValueChange={(e) => {
-                                         if (currentFilmData) {
-                                             const newdata = {...currentFilmData, fps: Number(e.value[0])}
-                                             setCurrentFilmData(newdata)
-                                         }
-                                     }}
-                                     collection={frameRateCollection}>
-                            <Select.Label>Frames per Second</Select.Label>
-                            <Select.Control>
-                                <Select.Trigger>
-                                    <Select.ValueText/>
-                                </Select.Trigger>
-                                <Select.IndicatorGroup>
-                                    <Select.Indicator/>
-                                </Select.IndicatorGroup>
-                            </Select.Control>
-                            <Select.Positioner>
-                                <Select.Content>
-                                    {frameRateCollection.items.map((rate) => (
-                                        <Select.Item item={rate} key={rate.value}>
-                                            {rate.label}
-                                            <Select.ItemIndicator/>
-                                        </Select.Item>
-                                    ))}
-                                </Select.Content>
-                            </Select.Positioner>
-                        </Select.Root>
-                        <Field.Root>
-                            <Field.Label>Film Stock Material</Field.Label>
-                            <Input placeholder="Not Implemented yet"/>
-                        </Field.Root>
-                    </Stack>
-                </Card.Body>
-            </Card.Root>
         </HStack>
     )
 }

@@ -1,6 +1,6 @@
 import {NormalizedPoint, PerforationLocation, Rect, ScanArea, Size} from "./types.ts";
 import * as React from "react";
-import {RefObject, useEffect, useRef, useState} from "react";
+import {RefObject, useEffect, useState} from "react";
 
 // Handy for casting simple json objects. Does hopefully cover all we need
 // Source: https://www.reddit.com/r/typescript/comments/13mssvc/types_for_json_and_writing_json/
@@ -86,7 +86,7 @@ export function useIsVisible(ref: RefObject<HTMLElement | null>) {
     return isIntersecting;
 }
 
-
+/**
 const usePrevious = (value, initialValue) => {
     const ref = useRef(initialValue);
     useEffect(() => {
@@ -118,3 +118,4 @@ export const useEffectDebugger = (effectHook, dependencies, dependencyNames = []
 
     useEffect(effectHook, dependencies);
 };
+ **/

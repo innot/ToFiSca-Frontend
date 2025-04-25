@@ -15,7 +15,6 @@ import {
     VStack
 } from "@chakra-ui/react";
 
-import {ApiFetchPreviewImage} from "./api.ts";
 import {LuCamera} from "react-icons/lu";
 import {useDevicePixelRatio} from "use-device-pixel-ratio";
 import {ImageRefObjects, ImageRefsContext} from "./imageRefsContext.ts";
@@ -43,7 +42,7 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
     const [imageLoading, setImageLoading] = useState<boolean>(false)
 
     /** The URL to load the image from. Either the Preview Still image or a live feed. */
-    const [previewImageUrl, setPreviewImageUrl] = useState<string>();
+    const [previewImageUrl, setPreviewImageUrl] = useState<string>("/api/camera/preview");
 
     /** The state of the Live Video Switch */
     const [liveSelected, setLiveSelected] = useState(false)
@@ -61,8 +60,13 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
 
     const handleNewPreviewImage = () => {
         const loadImage = async () => {
-            const newImage = await ApiFetchPreviewImage()
-            setPreviewImageUrl(newImage)
+            const response = await fetch('/api/camera/preview?reload');
+            if (!response.ok) {
+                // todo: show error message
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            setPreviewImageUrl(url)
         }
         setLiveSelected(false)
         setImageLoading(true)

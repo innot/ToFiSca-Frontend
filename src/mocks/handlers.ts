@@ -229,9 +229,12 @@ export const handlers = [
     }),
 
 
-    http.get('/api/camera/preview', async (/*{request}*/) => {
+    http.get('/api/camera/preview', async ({request}) => {
 
-        // const url = new URL(request.url)
+        const url = new URL(request.url)
+        const reload = url.searchParams.get('reload')
+
+        if (reload === "true")
 
         await sleep(100); // simulate server lag
 

@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "coverage": "vitest run --coverage",
-    "update_api": "openapi-typescript http://localhost/openapi.json -o ./src/tofisca_api.d.ts"
+    "update_api": "openapi-typescript http://tofisca:8080/openapi.json -o ./src/tofisca_api.d.ts"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",

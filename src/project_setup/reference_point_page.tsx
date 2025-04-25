@@ -1,5 +1,5 @@
 import ProjectImageSetupPage, {ImageOverlay} from "./image_setup_page.tsx";
-import {Alert, Box, Button, Heading, HStack, Icon, List, Text, VStack} from "@chakra-ui/react";
+import {Alert, Box, Button, HStack, Icon, List, Text, VStack} from "@chakra-ui/react";
 import * as React from "react";
 import {useEffect, useRef, useState} from "react";
 import {PerforationLocation, Point, Size} from "./types.ts";
@@ -9,7 +9,7 @@ import {useQueryClient} from "@tanstack/react-query"
 import {SetupPageProps} from "./project_setup.tsx";
 import {getNormalizedPointer} from "./common.ts";
 import {LuCircleAlert} from "react-icons/lu";
-import {ApiErrorDialog} from "./api_error_dialog.tsx";
+import {ApiErrorDialog} from "../common_components/api_error_dialog.tsx";
 
 enum Messages {
     NOT_STARTED = "NOT_STARTED",
@@ -214,9 +214,15 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
                 </div>
             </ImageOverlay>
             <VStack alignItems="left" height={"100%"}>
+                <Button
+                    loading={isDetecting}
+                    loadingText="Detecting..."
+                    onClick={() => handleAutodetect()}>
+                    Autodetect Perforation
+                </Button>
                 {currentPerfLocation ? (
                     <HStack alignItems="left">
-                        <Heading>✅ Perforation Detected</Heading>
+                        <Text>✅ Perforation Detected</Text>
                     </HStack>
                 ) : (
                     <HStack alignItems="left">
@@ -226,12 +232,6 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
                         <Text>Click on perforation hole in image or try Autodetect</Text>
                     </HStack>
                 )}
-                <Button
-                    loading={isDetecting}
-                    loadingText="Detecting..."
-                    onClick={() => handleAutodetect()}>
-                    Autodetect Perforation
-                </Button>
                 {{
                     "NOT_STARTED":
                         <div></div>,

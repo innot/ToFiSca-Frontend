@@ -19,7 +19,7 @@ import {
 } from "@chakra-ui/react";
 
 import {$api, ApiError} from "../api.ts";
-import {ApiErrorDialog} from "./api_error_dialog.tsx";
+import {ApiErrorDialog} from "../common_components/api_error_dialog.tsx";
 import {SetupPageProps} from "./project_setup.tsx";
 import ProjectImageSetupPage, {ImageOverlay} from "./image_setup_page.tsx";
 import {NormalizedPoint, PerforationLocation, ScanArea, Size} from "./types.ts";

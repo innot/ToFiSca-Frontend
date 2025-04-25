@@ -39,7 +39,8 @@ const myMiddleware: Middleware = {
 
 
 const fetchClient = createFetchClient<paths>({
-    baseUrl: "http://localhost:5173",
+    // baseUrl: "http://localhost:5173/",
+    baseUrl: "http://tofisca:8080/",
 });
 fetchClient.use(myMiddleware);
 

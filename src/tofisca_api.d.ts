@@ -332,6 +332,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/hardware/allgpios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Allgpios */
+        get: operations["get_allgpios_api_hardware_allgpios_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hardware/backlight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Backlight */
+        get: operations["get_backlight_api_hardware_backlight_get"];
+        /** Put Backlight */
+        put: operations["put_backlight_api_hardware_backlight_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -464,6 +499,34 @@ export interface components {
              * @default
              */
             stacktrace: string;
+        };
+        /** BacklightController */
+        BacklightController: {
+            /**
+             * Gpio
+             * @default 18
+             */
+            gpio: number;
+            /**
+             * Frequency
+             * @default 300
+             */
+            frequency: number;
+            /**
+             * Dutycycle
+             * @default 50
+             */
+            dutycycle: number;
+            /**
+             * Invert
+             * @default false
+             */
+            invert: boolean;
+            /**
+             * Enable
+             * @default false
+             */
+            enable: boolean;
         };
         /** FilmData */
         "FilmData-Input": {
@@ -609,6 +672,23 @@ export interface components {
              * @default 0
              */
             outer_edge: number;
+        };
+        /** PinInfo */
+        PinInfo: {
+            /** Gpio */
+            gpio: number;
+            /**
+             * Hardware Pwm
+             * @default false
+             */
+            hardware_pwm: boolean;
+            /**
+             * Software Pwm
+             * @default false
+             */
+            software_pwm: boolean;
+            /** Assigned To */
+            assigned_to?: string | null;
         };
         /** Point */
         Point: {
@@ -819,7 +899,7 @@ export interface operations {
                     "application/json": components["schemas"]["APIProjectDoesNotExist"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Unprocessable Entity */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -879,7 +959,7 @@ export interface operations {
                     "application/json": components["schemas"]["APIProjectDoesNotExist"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Unprocessable Entity */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1006,7 +1086,7 @@ export interface operations {
                     "application/json": components["schemas"]["APIProjectAlreadyExists"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Unprocessable Entity */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1119,7 +1199,7 @@ export interface operations {
                     "application/json": components["schemas"]["APIObjectNotFoundError"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Unprocessable Entity */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1190,7 +1270,7 @@ export interface operations {
                     "application/json": components["schemas"]["APINoActiveProject"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Unprocessable Entity */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1416,7 +1496,9 @@ export interface operations {
     };
     get_camera_preview_api_camera_preview_get: {
         parameters: {
-            query?: never;
+            query?: {
+                reload?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1431,6 +1513,15 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                     "image/png": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1451,6 +1542,81 @@ export interface operations {
                 };
                 content: {
                     "multipart/x-mixed-replace; boundary=---frame": string;
+                };
+            };
+        };
+    };
+    get_allgpios_api_hardware_allgpios_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PinInfo"][];
+                };
+            };
+        };
+    };
+    get_backlight_api_hardware_backlight_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacklightController"];
+                };
+            };
+        };
+    };
+    put_backlight_api_hardware_backlight_put: {
+        parameters: {
+            query?: {
+                gpio?: number | null;
+                enable?: boolean | null;
+                frequency?: number | null;
+                dutycycle?: number | null;
+                invert?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacklightController"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

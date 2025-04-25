@@ -1,4 +1,4 @@
-import {Box, Button, ButtonGroup, Heading, Steps, Text, useSteps, VStack} from "@chakra-ui/react";
+import {Box, Center, For, Heading, Tabs, Text, useSteps, VStack} from "@chakra-ui/react";
 import ProjectImageSetupPage, {ImageOverlay} from "./image_setup_page.tsx";
 import ReferencePointPage from "./reference_point_page.tsx";
 import {useEffect, useState} from "react";
@@ -6,7 +6,7 @@ import ScanAreaPage from "./scan_area_page.tsx";
 import ProjectSettingsPage from "./project_settings_page.tsx";
 import {useQueryClient} from "@tanstack/react-query";
 import {ApiError} from "../api.ts";
-import {ApiErrorDialog} from "./api_error_dialog.tsx";
+import {ApiErrorDialog} from "../common_components/api_error_dialog.tsx";
 import {ErrorBoundary} from "react-error-boundary";
 
 export interface SetupPageProps {
@@ -92,7 +92,7 @@ export default function ProjectSetup() {
     }, [items.length]); // called only once on initial render
 
     return (
-        <VStack id="test">
+        <VStack id="test" h="full">
             <ApiErrorDialog apiError={apiError} setApiError={() => setApiError(null)}/>
             <ErrorBoundary fallback={<div>Problem here</div>}>
                 <Heading>
@@ -101,55 +101,28 @@ export default function ProjectSetup() {
                     &nbsp; Project Setup
                 </Heading>
             </ErrorBoundary>
-            <Steps.Root onStepChange={(e) => setCurrentStep(e.step)}>
-                <Steps.RootProvider value={steps} gap="0.5rem">
-                    <Steps.List>
-                        {items.map((step, index) => (
-                            <Steps.Item key={index} index={index} title={step.title}>
-                                <Steps.Trigger>
-                                    <Steps.Indicator/>
-                                    <Steps.Title>{step.title}</Steps.Title>
-                                    <Steps.Separator/>
-                                </Steps.Trigger>
-                            </Steps.Item>
-                        ))}
-                    </Steps.List>
-                    <ButtonGroup size="sm" variant="solid">
-                        <Steps.PrevTrigger asChild>
-                            <Button>Prev</Button>
-                        </Steps.PrevTrigger>
-                        {items.map((step, index) => (
-                            <ErrorBoundary fallback={<div>Something went wrong</div>}>
-                                <Steps.Content key={index} index={index} width="100%">
-                                    <VStack bg={"gray.800"} paddingTop="0.3em" paddingBottom="0.3em">
-                                        <Heading>{step.description}</Heading>
-                                    </VStack>
-                                </Steps.Content>
-                            </ErrorBoundary>
-                        ))}
-                        <Steps.NextTrigger asChild>
-                            <Button disabled={!pageState[steps.value]}>Next</Button>
-                        </Steps.NextTrigger>
-                    </ButtonGroup>
-
-                    {items.map((step, index) => (
-                        <Steps.Content key={index} index={index}>
-                            <Box width="100%" height="100%" bg={"gray.600"}>
-                                {step.element}
-                            </Box>
-                        </Steps.Content>
-                    ))}
-                    <Steps.CompletedContent>
-                        <VStack bg={"gray.800"}>
-                            <Heading>Project Set up complete</Heading>
-                        </VStack>
-                    </Steps.CompletedContent>
-
-                </Steps.RootProvider>
-            </Steps.Root>
-            { /* filler */
-            }
-            <Box flex={1}></Box>
+            <Box width="100%" height="100%">
+                <Tabs.Root lazyMount={true} defaultValue={items[0]?.title}>
+                    <Tabs.List>
+                        <For each={items}>
+                            {(item, index) =>
+                                <Tabs.Trigger value={item.title} key={index}>
+                                    {item.title}
+                                </Tabs.Trigger>
+                            }
+                        </For>
+                    </Tabs.List>
+                    <For each={items}>
+                        {(item, index) =>
+                            <Tabs.Content value={item.title} key={index} bg={"gray.800"}>
+                                <Center><Heading >{item.description}</Heading></Center>
+                                {item.element}
+                            </Tabs.Content>
+                        }
+                    </For>
+                </Tabs.Root>
+            </Box>
+            <Box h="full"/>
         </VStack>
     )
 }

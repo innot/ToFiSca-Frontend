@@ -19,6 +19,7 @@ import {useEffect, useState} from "react";
 import {useQueryClient} from "@tanstack/react-query";
 import {$api, ApiError} from "../api.ts";
 import {ApiErrorDialog} from "../common_components/api_error_dialog.tsx";
+import {throttle} from "../common_components/throttle.ts";
 import {BacklightController} from "./types.ts"
 
 
@@ -76,6 +77,39 @@ export default function HardwareSetup() {
         }
     }, [apiGetBacklight, apiGetBacklightStatus, initialBacklightController]);
 
+    const {mutate: apiPutBacklightMutate} = $api.useMutation(
+        "put",
+        "/api/hardware/backlight",
+        {
+            onError: async (error) => {
+                if (error instanceof ApiError) {
+                    setApiError(error)
+                } else {
+                    console.error(error)
+                }
+            },
+        }
+    )
+
+    useEffect(() => {
+        // Throttle api calls to 5 per second
+        const call_api = throttle(() => {
+            if (backlightController !== null) {
+                apiPutBacklightMutate({
+                    params: {
+                        query: {
+                            gpio: backlightController.gpio,
+                            invert: backlightController.invert,
+                            frequency: backlightController.frequency,
+                            dutycycle: backlightController.dutycycle,
+                            enable: backlightController.enable,
+                        }
+                    }
+                })
+            }
+        }, 200)
+        call_api()
+    }, [apiPutBacklightMutate, backlightController]);
 
     return (
         <VStack id="test" h="full">

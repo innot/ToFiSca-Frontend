@@ -5,7 +5,7 @@ import {Portal} from "@chakra-ui/react";
 
 interface Props {
     apiError: ApiError | null;
-    setApiError: (error: ApiError | null) => void;
+    onDialogClose: () => void;
 }
 
 export const ApiErrorDialog = (props: Props) => {
@@ -23,7 +23,7 @@ export const ApiErrorDialog = (props: Props) => {
      * Clear the error message once the dialog has shown
      */
     useEffect(() => {
-        if (!open) props.setApiError(null)
+        if (!open) props.onDialogClose()
     }, [open, props]);
 
     return (

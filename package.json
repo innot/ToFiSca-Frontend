@@ -14,7 +14,6 @@
     "update_api": "openapi-typescript http://tofisca:8080/openapi.json -o ./src/tofisca_api.d.ts"
   },
   "dependencies": {
-    "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/react": "^3.12.0",
     "@emotion/react": "^11.14.0",
     "@uidotdev/usehooks": "^2.4.1",

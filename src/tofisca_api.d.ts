@@ -240,8 +240,7 @@ export interface paths {
         };
         /** Get Perf Location */
         get: operations["get_perf_location_api_project_perf_location_get"];
-        /** Put Perf Location */
-        put: operations["put_perf_location_api_project_perf_location_put"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -256,10 +255,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Perf Detect */
+        get: operations["get_perf_detect_api_project_perf_detect_get"];
         put?: never;
-        /** Post Perfdetect */
-        post: operations["post_perfdetect_api_project_perf_detect_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -288,6 +287,58 @@ export interface paths {
          *         - size: The size of the scan area.
          */
         put: operations["put_scanarea_api_project_scanarea_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/camera/controls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Camera Controls */
+        get: operations["get_camera_controls_api_camera_controls_get"];
+        /** Put Camera Controls */
+        put: operations["put_camera_controls_api_camera_controls_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/camera/autoexposure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Camera Autoexposure */
+        get: operations["get_camera_autoexposure_api_camera_autoexposure_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/camera/autowhitebalance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Camera Autowhitebalance */
+        get: operations["get_camera_autowhitebalance_api_camera_autowhitebalance_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -522,11 +573,76 @@ export interface components {
              * @default false
              */
             invert: boolean;
+        };
+        /** CameraControls */
+        CameraControls: {
             /**
-             * Enable
+             * Ae Enable
              * @default false
              */
-            enable: boolean;
+            ae_enable: boolean;
+            /**
+             * Ae Exposure Mode
+             * @default 0
+             */
+            ae_exposure_mode: number;
+            /**
+             * Exposure Time
+             * @default 20000
+             */
+            exposure_time: number | null;
+            /**
+             * Analogue Gain
+             * @default 1
+             */
+            analogue_gain: number | null;
+            /**
+             * Awb Enable
+             * @default false
+             */
+            awb_enable: number;
+            /**
+             * Awb Mode
+             * @default 0
+             */
+            awb_mode: number;
+            /** Colour Temperature */
+            colour_temperature?: number | null;
+            /**
+             * Colour Gain Red
+             * @default 1
+             */
+            colour_gain_red: number;
+            /**
+             * Colour Gain Blue
+             * @default 1
+             */
+            colour_gain_blue: number;
+            /**
+             * Brightness
+             * @default 0
+             */
+            brightness: number;
+            /**
+             * Contrast
+             * @default 1
+             */
+            contrast: number;
+            /**
+             * Saturation
+             * @default 1
+             */
+            saturation: number;
+            /**
+             * Sharpness
+             * @default 1
+             */
+            sharpness: number;
+            /**
+             * Noise Reduction Mode
+             * @default 0
+             */
+            noise_reduction_mode: number;
         };
         /** FilmData */
         "FilmData-Input": {
@@ -1339,49 +1455,7 @@ export interface operations {
             };
         };
     };
-    put_perf_location_api_project_perf_location_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PerforationLocation"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PerforationLocation"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APINoActiveProject"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_perfdetect_api_project_perf_detect_post: {
+    get_perf_detect_api_project_perf_detect_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1490,6 +1564,114 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_camera_controls_api_camera_controls_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraControls"];
+                };
+            };
+        };
+    };
+    put_camera_controls_api_camera_controls_put: {
+        parameters: {
+            query?: {
+                as_default?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CameraControls"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraControls"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_camera_autoexposure_api_camera_autoexposure_get: {
+        parameters: {
+            query?: {
+                analogue_gain?: number;
+                exposure_time?: number;
+                exposure_mode?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraControls"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_camera_autowhitebalance_api_camera_autowhitebalance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraControls"];
                 };
             };
         };

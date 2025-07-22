@@ -20,7 +20,6 @@ import {
 
 import {$api, ApiError} from "../api.ts";
 import {ApiErrorDialog} from "../common_components/api_error_dialog.tsx";
-import {SetupPageProps} from "./project_setup.tsx";
 import ProjectImageSetupPage, {ImageOverlay} from "./image_setup_page.tsx";
 import {NormalizedPoint, PerforationLocation, ScanArea, Size} from "./types.ts";
 import {
@@ -30,6 +29,7 @@ import {
     scanAreaToRect,
     scanAreaToScaledRect,
 } from "./common.ts";
+import {SetupPageProps} from "./project_setup.tsx";
 
 const themeColors = {
     edgeColor: '#00f000c0',  // Dark green with low transparancy
@@ -50,7 +50,7 @@ enum Edge {
     RIGHT
 }
 
-export default function ScanAreaPage({currentPage, pageIndex, onFinished}: SetupPageProps) {
+export default function ScanAreaPage({onValidStateChange}: SetupPageProps) {
 
     // activate the api calls
     useQueryClient();
@@ -102,7 +102,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
 
     /**
      * The size of the roi drag handles in canvas pixels.
-     * Can be set with the "--drag-handle-size" css style (in % or in px).
+     * Can be set with the "--drag-handle-size" CSS style (in % or in px).
      * Default is 5% which represents 5% of the canvas width.
      */
     const handleSize: number = useMemo<number>(() => {
@@ -178,10 +178,10 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
 
     /**
      * Called when the pointer (re)enters the canvas.
-     * If it has left during a drag and the button is up end the current drag.
+     * If it has left during a drag, and the button is up, end the current drag.
      */
     const handlePointerEnter = (e: React.PointerEvent) => {
-        // If the mouse leaves the element we do not get an PointerUp Event.
+        // If the mouse leaves the element, we do not get a PointerUp Event.
         // In this case (PointerUp outside the Canvas) stop any drag operations which might be in progress.
 
         e.preventDefault() // do not generate mouse event
@@ -248,7 +248,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
     }
 
     /**
-     * Perform drag operation if the pointer is down (activeEdge != Edge.None)
+     * Perform a drag operation if the pointer is down (activeEdge != Edge.None)
      * @param e
      */
     const handlePointerMove = (e: React.PointerEvent) => {
@@ -267,7 +267,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
 
         const p = getNormalizedPointer(e)
 
-        const shiftkey = e.shiftKey; // if shift key is pressed move opposite edge
+        const shiftkey = e.shiftKey; // if the shift key is pressed move opposite edge
 
         // add the delta between the active edge and the mouse position at the time of the click
         // so that the edge does not jump to the current mouse position upon movement
@@ -335,15 +335,6 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
     );
 
     /**
-     * Refetch the PerforationLocation once the page becomes visible
-     */
-    useEffect(() => {
-        if (currentPage == pageIndex) {
-            void apiGetPerfLoc.refetch()
-        }
-    }, [apiGetPerfLoc, apiGetPerfLoc.refetch, currentPage, pageIndex])
-
-    /**
      * Handle the get PerforationLocation response.
      * Set the PerforationLocation or show an error dialog.
      **/
@@ -391,15 +382,11 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
         {
             onError: (error) => {
                 setApiError(error as ApiError)
-                if (onFinished) {
-                    onFinished(pageIndex, false)
-                }
+                onValidStateChange(false)
             },
             onSuccess: () => {
-                // Tell the parent PrejectSetup Component that this page is finished
-                if (onFinished) {
-                    onFinished(pageIndex, true)
-                }
+                // Tell the parent PrejectSetup Component that this page is valid
+                onValidStateChange(true)
             }
         }
     );
@@ -424,14 +411,6 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
     /////////////////////////////////////////////////////////////////////////
     // Effects
     /////////////////////////////////////////////////////////////////////////
-
-    // refetch the perfLoc and ScanArea whenever this page becomes active
-    useEffect(() => {
-        if (currentPage == pageIndex) {
-            apiGetPerfLoc.refetch().catch(console.error)
-            apiGetScanArea.refetch().catch(console.error)
-        }
-    }, [apiGetPerfLoc, apiGetScanArea, currentPage, pageIndex]);
 
     /** update the manual entry fields on every change of the scanarea */
     useEffect(() => {
@@ -463,7 +442,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
         if (!width || !height) return;
         setCanvasSize({width: width * dpr, height: height * dpr});
 
-        // this is a bit of a hack, but handleImageResize is called whenever the page becomes visible.
+        // This is a bit of a hack, but handleImageResize is called whenever the page becomes visible.
         // So this might be a good place to refetch the latest PerforationLocation
         apiGetPerfLoc.refetch().catch(console.error);
         apiGetScanArea.refetch().catch(console.error);
@@ -477,7 +456,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
 
         const canvas = canvasRef.current
 
-        // in the early renders the canvas is not yet set up. No need to draw on a 0x0 Canvas.
+        // In the early renders the canvas is not yet set up. No need to draw on a 0x0 Canvas.
         if (!perfLocation) return;
         if (!canvas) return;
         if (canvas.width == 0 || canvas.height == 0) return
@@ -531,7 +510,7 @@ export default function ScanAreaPage({currentPage, pageIndex, onFinished}: Setup
         ctx.lineTo(rx + sin_r, ry - cos_r);
         ctx.stroke()
 
-        // draw line from reference point to top left corner
+        // draw line from reference point to the top left corner
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(rx, ry);

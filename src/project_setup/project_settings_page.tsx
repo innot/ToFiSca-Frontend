@@ -17,17 +17,17 @@ import {$api, ApiError} from "../api";
 import {ApiErrorDialog} from "../common_components/api_error_dialog.tsx";
 import {useQueryClient} from "@tanstack/react-query";
 
-import {SetupPageProps} from "./project_setup";
 import {FilmData, FilmFormat, ProjectPathEntry} from "./types.ts";
 
 
-export interface Props extends SetupPageProps {
+export interface Props {
     // callback for project name changes.
     onProjectNameChange: (name: string) => void;
+    onValidStateChange: (valid: boolean) => void;
 }
 
 
-export default function ProjectSettingsPage(props: Props) {
+export default function ProjectSettingsPage({onProjectNameChange, onValidStateChange}: Props) {
 
     useQueryClient();
 
@@ -93,9 +93,9 @@ export default function ProjectSettingsPage(props: Props) {
             const name = apiGetProjectName
             setCurrentProjectName(name)
             if (!initialProjectName) setInitialProjectName(name)
-            props.onProjectNameChange(name)
+            onProjectNameChange(name)
         }
-    }, [apiGetProjectName, apiGetProjectNameStatus, initialProjectName]);
+    }, [apiGetProjectName, apiGetProjectNameStatus, initialProjectName, onProjectNameChange]);
 
     const {mutate: apiPutProjectNameMutate} = $api.useMutation(
         "put",
@@ -110,7 +110,7 @@ export default function ProjectSettingsPage(props: Props) {
             },
             onSuccess: async (name) => {
                 // Tell the ProjectSetup parent component about the new name
-                props.onProjectNameChange(name);
+                onProjectNameChange(name);
             }
         }
     )
@@ -266,7 +266,7 @@ export default function ProjectSettingsPage(props: Props) {
         const sanitizedName = name.replace(/[\u0000-\u001F\u007F-\u009F\\/:*?"<>|]/g, "")
         setCurrentProjectName(sanitizedName)
 
-        // check if the name already exist and - if yes - output a warning
+        // check if the name already exists and - if yes - output a warning
         let isdup = false;
         if (allProjects) {
             for (const pid in allProjects) {
@@ -278,7 +278,7 @@ export default function ProjectSettingsPage(props: Props) {
     }
 
     /**
-     * This handler checks if the current project Name is valid and if so tells the parent
+     * This handler checks if the current project Name is valid and if so, tells the parent
      * ProjectSetup Component to send the name to the api
      */
     const handleNameOnBlur = () => {
@@ -288,7 +288,7 @@ export default function ProjectSettingsPage(props: Props) {
         }
         if (!warnNameDuplicate) {
             // Send the new name to the database.
-            // If successful the returned value will set the project name of the parent ProjectSetup component.
+            // If successful, the returned value will set the project name of the parent ProjectSetup component.
             apiPutProjectNameMutate({params: {query: {name: currentProjectName}}})
         }
 
@@ -323,8 +323,8 @@ export default function ProjectSettingsPage(props: Props) {
                 const newdata: FilmData = {...currentFilmData, format: format};
                 setCurrentFilmData(newdata)
 
-                // check if current fps is still in the list.
-                // If no set it to the first value of the new framerates
+                // Check if current fps is still in the list.
+                // If no, set it to the first value of the new framerates
                 if (!format.framerates.includes(newdata.fps)) {
                     const newdata: FilmData = {...currentFilmData, fps: format.framerates[0]!};
                     setCurrentFilmData(newdata)
@@ -340,11 +340,11 @@ export default function ProjectSettingsPage(props: Props) {
 
     useEffect(() => {
         if (currentProjectName && !warnNameDuplicate) {
-            props.onFinished(props.pageIndex, true)
+            onValidStateChange(true)
         } else {
-            props.onFinished(props.pageIndex, false)
+            onValidStateChange(false)
         }
-    }, [currentProjectName, warnNameDuplicate]);
+    }, [currentProjectName, onValidStateChange, warnNameDuplicate]);
 
     /**
      * Update the supported framerates state from the newly selected FilmFormat
@@ -384,7 +384,9 @@ export default function ProjectSettingsPage(props: Props) {
 
     return (
         <HStack gap="0.5rem" alignItems="top" width="100%" padding={"1%"}>
-            <ApiErrorDialog apiError={apiError} setApiError={(error) => setApiError(error)}/>
+            {apiError !== null &&
+                <ApiErrorDialog apiError={apiError} onDialogClose={() => setApiError(null)}/>
+            }
             <VStack flex={1}>
                 <Card.Root variant="elevated" bg={"gray.500"} width={"100%"}>
                     <Card.Body>

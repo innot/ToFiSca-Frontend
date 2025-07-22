@@ -1,5 +1,5 @@
 export const ApiFetchPreviewImage = async () => {
-    const response = await fetch('/api/camera/preview?reload=' + true);
+    const response = await fetch('http://tofisca:8080/api/camera/preview?reload=' + true);
     if (!response.ok) {
         // todo: show error message
     }

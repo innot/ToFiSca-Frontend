@@ -8,6 +8,7 @@ export type FilmData = components["schemas"]["FilmData-Input"];
 export type FilmFormat = components["schemas"]["FilmFormat"];
 export type FilmSpecKey = components["schemas"]["FilmSpecKey"];
 export type ProjectPathEntry = components["schemas"]["ProjectPathEntry"];
+export type CameraControls = components["schemas"]["CameraControls"];
 
 export type APIInvalidData = components["schemas"]["APIInvalidDataError"];
 export type APINoActiveProject = components["schemas"]["APINoActiveProject"]

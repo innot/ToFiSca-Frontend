@@ -32,6 +32,8 @@ export default function HardwareSetup() {
     const [backlightController, setBacklightController] = useState<BacklightController | null>(null)
     const [initialBacklightController, setInitialBacklightController] = useState<BacklightController | null>(null)
 
+    const [backlightEnabled, setBacklightEnabled] = useState<boolean>(false)
+
 
     /** The last error message from the backend API. Valid until cleared in the error dialog **/
     const [apiError, setApiError] = useState<ApiError | null>(null);
@@ -102,14 +104,14 @@ export default function HardwareSetup() {
                             invert: backlightController.invert,
                             frequency: backlightController.frequency,
                             dutycycle: backlightController.dutycycle,
-                            enable: backlightController.enable,
+                            enable: backlightEnabled,
                         }
                     }
                 })
             }
         }, 200)
         call_api()
-    }, [apiPutBacklightMutate, backlightController]);
+    }, [apiPutBacklightMutate, backlightController, backlightEnabled]);
 
     return (
         <VStack id="test" h="full">
@@ -233,15 +235,11 @@ export default function HardwareSetup() {
 
                     <Field.Root width="100%">
                         <Field.Label>Backlight</Field.Label>
-                        <SegmentGroup.Root value={backlightController?.enable ? "On" : "Off"}
+                        <SegmentGroup.Root value={backlightEnabled ? "On" : "Off"}
                                            onValueChange={(e) => {
                                                if (backlightController !== null) {
                                                    const new_enable = e.value === "On"
-                                                   const new_controller = {
-                                                       ...backlightController,
-                                                       enable: new_enable
-                                                   }
-                                                   setBacklightController(new_controller)
+                                                   setBacklightEnabled(new_enable)
                                                }
                                            }}>
                             <SegmentGroup.Indicator/>

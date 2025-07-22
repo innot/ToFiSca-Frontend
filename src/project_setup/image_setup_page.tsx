@@ -60,9 +60,10 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
 
     const handleNewPreviewImage = () => {
         const loadImage = async () => {
-            const response = await fetch('/api/camera/preview?reload');
+            const response = await fetch('http://tofisca:8080/api/camera/preview?reload=true');
             if (!response.ok) {
                 // todo: show error message
+                console.error(response.statusText);
             }
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
@@ -88,7 +89,7 @@ export default function ProjectImageSetupPage(props: ProjectImageSetupPageProps)
     /** If live image is selected change the url of the image to the live feed **/
     useEffect(() => {
         if (liveSelected) {
-            setPreviewImageUrl("/api/camera/live")
+            setPreviewImageUrl("http://tofisca:8080/api/camera/live")
         }
     }, [liveSelected]);
 

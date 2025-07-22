@@ -6,10 +6,10 @@ import {PerforationLocation, Point, Size} from "./types.ts";
 import {useDevicePixelRatio} from "use-device-pixel-ratio";
 import {$api, ApiError} from "../api.ts";
 import {useQueryClient} from "@tanstack/react-query"
-import {SetupPageProps} from "./project_setup.tsx";
 import {getNormalizedPointer} from "./common.ts";
 import {LuCircleAlert} from "react-icons/lu";
 import {ApiErrorDialog} from "../common_components/api_error_dialog.tsx";
+import {SetupPageProps} from "./project_setup.tsx";
 
 enum Messages {
     NOT_STARTED = "NOT_STARTED",
@@ -19,7 +19,7 @@ enum Messages {
 }
 
 
-export default function ReferencePointPage({pageIndex, onFinished}: SetupPageProps) {
+export default function ReferencePointPage({onValidStateChange}: SetupPageProps) {
 
     useQueryClient();
 
@@ -33,13 +33,13 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
     /** The current position of the mouse pointer relative to the canvas (normalized) **/
     const [pointerPosition, setPointerPosition] = useState<Point | null>(null)
 
-    /** Flag to indicate that a detect request has been sent to the backend. **/
+    /** Flag to indicate that a detect-request has been sent to the backend. **/
     const [isDetecting, setIsDetecting] = useState(false);
 
     /** The point at which the backend should start looking for a perforation hole */
     const [startPoint, setStartPoint] = useState<Point | undefined>()
 
-    /** The current PerforationLocation. Will be updated by an Autodetect or a manual detect **/
+    /** The current PerforationLocation. Will be updated by an Autodetect or a manual-detect **/
     const [currentPerfLocation, setCurrentPerfLocation] = useState<PerforationLocation | null>(null);
 
     /** The initial PerforationLocation. Used to revert to the original state if required **/
@@ -58,17 +58,17 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
     // Pointer Events
     /////////////////////////////////////////////////////////////////////////
 
-    /** Invalidate the PointerPosition so no crosshair is drawn anymore **/
+    /** Invalidate the PointerPosition so no crosshair is drawn any more **/
     const handlePointerLeave = () => {
         setPointerPosition(null)
     }
 
-    /** Set PointerPosition state to the current pointer position **/
+    /** Set the PointerPosition to the current pointer position **/
     const handlePointerMove = (e: React.PointerEvent) => {
         setPointerPosition(getNormalizedPointer(e))
     }
 
-    /** Set the current PointerPosition as the starting point for a manual perforation detection */
+    /** Set the current PointerPosition as the starting point for manual perforation detection */
     const handlePointerDown = (e: React.PointerEvent) => {
         setStartPoint(getNormalizedPointer(e))
     }
@@ -114,12 +114,13 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
     /////////////////////////////////////////////////////////////////////////
 
     /** Send a perforation detection request to the backend **/
-    const {mutate: apiPostDetectMutate} = $api.useMutation(
-        "post",
+    const {mutate: apiGetDetectMutate} = $api.useMutation(
+        "get",
         "/api/project/perf/detect",
         {
             onError: (error) => {
                 setIsDetecting(false);
+                onValidStateChange(false)
                 const apiError = error as ApiError
                 if (apiError.status !== 420 || !apiError.requestBody) {
                     console.error(`Internal Error: /api/perf/detect invalid return. ${apiError}`)
@@ -132,7 +133,7 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
                     return
                 }
 
-                // check the response body to see if we came from an autodetect or manual detect.
+                // check the response body to see if we came from an autodetect or a manual-detect.
                 const point = apiError.requestBody as Point
                 if (point.x == 0 && point.y == 0) {
                     setDetectorState(Messages.AUTODETECT_FAILED)
@@ -145,7 +146,7 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
                 setIsDetecting(false);
                 setCurrentPerfLocation(data);
                 setDetectorState(Messages.SUCCESS)
-                onFinished(pageIndex, true)
+                onValidStateChange(true)
             }
         }
     );
@@ -161,9 +162,9 @@ export default function ReferencePointPage({pageIndex, onFinished}: SetupPagePro
 
         setIsDetecting(true);
 
-        apiPostDetectMutate({body: startPoint})
+        apiGetDetectMutate({body: startPoint})
 
-    }, [apiPostDetectMutate, startPoint]);
+    }, [apiGetDetectMutate, startPoint]);
 
 
     /////////////////////////////////////////////////////////////////////////

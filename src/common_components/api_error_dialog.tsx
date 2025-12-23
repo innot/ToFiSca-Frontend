@@ -26,6 +26,8 @@ export const ApiErrorDialog = (props: Props) => {
         if (!open) props.onDialogClose()
     }, [open, props]);
 
+    console.info("ApiErrorDialog: ", props.onDialogClose)
+
     return (
         <Dialog.Root lazyMount open={open} onOpenChange={(e) => setOpen(e.open)}>
             <Portal>
